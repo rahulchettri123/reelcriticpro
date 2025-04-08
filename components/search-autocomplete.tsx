@@ -88,6 +88,30 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
     }
   }, [debouncedQuery])
 
+  // Ensure input focus is maintained when Popover opens
+  useEffect(() => {
+    if (open && inputRef.current) {
+      // More aggressive focus management - try multiple times
+      const focusInput = () => {
+        inputRef.current?.focus();
+      };
+      
+      // Focus immediately
+      focusInput();
+      
+      // Also focus after a small delay (for rendering)
+      const timer = setTimeout(focusInput, 10);
+      
+      // And again after a longer delay (for any animations)
+      const timer2 = setTimeout(focusInput, 100);
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(timer2);
+      };
+    }
+  }, [open, query]); // Also react to query changes
+
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
     if (query.trim()) {
@@ -96,6 +120,17 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
       setOpen(false)
     }
   }, [query, onSearch, router]);
+
+  // Keep focus when Popover closes
+  const handleOpenChange = (open: boolean) => {
+    setOpen(open);
+    // If closing, refocus the input
+    if (!open && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 0);
+    }
+  };
 
   const handleSelectMovie = useCallback((movie: Movie) => {
     router.push(`/details/${movie.id}`)
@@ -113,6 +148,23 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
     }
   }, []);
 
+  // More comprehensive key handling
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Prevent propagation for all keys to avoid focus issues
+    e.stopPropagation();
+    
+    // Special handling for space
+    if (e.key === " ") {
+      // Continue normally, the stopPropagation already prevents focus loss
+    }
+    
+    // Handle escape key to close popover but keep focus
+    if (e.key === "Escape") {
+      setOpen(false);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  };
+
   const clearSearch = useCallback(() => {
     setQuery("")
     setOpen(false)
@@ -129,8 +181,19 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
             key={movie.id}
             onSelect={() => handleSelectMovie(movie)}
             className="flex items-center gap-2 py-2"
+            // Prevent focus stealing in CommandItem
+            onMouseDown={(e) => e.preventDefault()}
           >
-            <div className="relative h-10 w-7 flex-shrink-0 overflow-hidden rounded">
+            <div 
+              className="relative h-10 w-7 flex-shrink-0 overflow-hidden rounded"
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) {
+                  e.stopPropagation();
+                  router.push(`/details/${movie.id}`);
+                }
+              }}
+              title="Ctrl+Click to view movie details"
+            >
               <Image
                 src={movie.poster || "/placeholder.svg"}
                 alt={movie.title}
@@ -151,7 +214,7 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
   return (
     <div className={`relative ${className}`}>
       <form onSubmit={handleSubmit} className="relative">
-        <Popover open={open && suggestions.length > 0} onOpenChange={setOpen}>
+        <Popover open={open && suggestions.length > 0} onOpenChange={handleOpenChange}>
           <PopoverTrigger asChild>
             <div className="flex w-full gap-2">
               <div className="relative flex-1">
@@ -161,6 +224,7 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
                   placeholder="Search for movies..."
                   value={query}
                   onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
                   className="w-full"
                   onFocus={() => {
                     if (query.trim().length > 1 && suggestions.length > 0) {
@@ -191,8 +255,24 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect,
               </Button>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
-            <Command>
+          <PopoverContent 
+            className="p-0 w-[var(--radix-popover-trigger-width)] max-h-[300px] overflow-y-auto" 
+            align="start"
+            sideOffset={5}
+            onOpenAutoFocus={(e) => {
+              // This is critical - prevent the PopoverContent from stealing focus
+              e.preventDefault();
+              // Refocus input after popover opens
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+            onCloseAutoFocus={(e) => {
+              // Also prevent focus stealing on close
+              e.preventDefault();
+              // Ensure input stays focused when popover closes
+              setTimeout(() => inputRef.current?.focus(), 0);
+            }}
+          >
+            <Command shouldFilter={false}>
               {suggestionsList}
             </Command>
           </PopoverContent>

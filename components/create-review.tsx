@@ -243,13 +243,13 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Create Review</CardTitle>
+      <CardHeader className="pb-3 pt-4 px-4 sm:px-6">
+        <CardTitle className="text-lg sm:text-xl">Create Review</CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="flex items-start gap-3">
-            <Avatar>
+            <Avatar className="hidden sm:flex">
               <AvatarImage src={user?.avatar || "/placeholder.svg"} alt={user?.name || "User avatar"} />
               <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
@@ -277,7 +277,7 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                             setIsOpen(true);
                           }
                         }}
-                        className="w-full"
+                        className="w-full py-2 text-base"
                         autoFocus
                       />
                       <Button
@@ -305,7 +305,7 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                     </div>
                   </PopoverTrigger>
                   <PopoverContent 
-                    className="w-[var(--radix-popover-trigger-width)] p-0" 
+                    className="w-[var(--radix-popover-trigger-width)] p-0 max-h-[300px] overflow-y-auto" 
                     align="start"
                     sideOffset={5}
                     onOpenAutoFocus={(e) => {
@@ -334,7 +334,7 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                               onMouseDown={(e) => e.preventDefault()}
                             >
                               <div 
-                                className="relative h-16 w-12 overflow-hidden rounded shadow-sm"
+                                className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded shadow-sm"
                                 onClick={(e) => {
                                   if (e.ctrlKey || e.metaKey) {
                                     e.stopPropagation();
@@ -356,10 +356,10 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                                   </div>
                                 )}
                               </div>
-                              <div className="flex flex-col">
-                                <p className="font-medium">{movie.title}</p>
+                              <div className="flex flex-col flex-1">
+                                <p className="font-medium text-sm sm:text-base">{movie.title}</p>
                                 {movie.year && <p className="text-xs text-muted-foreground">{movie.year}</p>}
-                                <p className="text-xs text-muted-foreground mt-1">Ctrl+Click for details</p>
+                                <p className="text-xs text-muted-foreground mt-1 hidden sm:block">Ctrl+Click for details</p>
                               </div>
                             </CommandItem>
                           ))}
@@ -385,8 +385,8 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{selectedMovie.title}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-base">{selectedMovie.title}</p>
                       <Button 
                         type="button"
                         variant="ghost" 
@@ -413,30 +413,33 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
 
               {selectedMovie && (
                 <>
-                  <div className="flex items-center gap-1 my-3">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Button
-                        key={star}
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleStarClick(star)}
-                      >
-                        <Star
-                          className={`h-6 w-6 ${
-                            rating >= star ? "fill-primary text-primary" : "text-muted-foreground"
-                          }`}
-                        />
-                        <span className="sr-only">Rate {star} stars</span>
-                      </Button>
-                    ))}
+                  <div className="flex items-center justify-center gap-2 my-4">
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Button
+                          key={star}
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 w-10 sm:h-8 sm:w-8 p-0"
+                          onClick={() => handleStarClick(star)}
+                        >
+                          <Star
+                            className={`h-7 w-7 sm:h-6 sm:w-6 ${
+                              rating >= star ? "fill-primary text-primary" : "text-muted-foreground"
+                            }`}
+                          />
+                          <span className="sr-only">Rate {star} stars</span>
+                        </Button>
+                      ))}
+                    </div>
                     {rating > 0 && (
                       <span className="ml-2 text-sm font-medium">{rating}/5</span>
                     )}
                   </div>
 
-                  <div className="flex gap-2 mt-3">
+                  {/* Desktop layout (side-by-side) */}
+                  <div className="hidden md:flex gap-2 mt-3">
                     <Textarea
                       placeholder="Write your review..."
                       value={reviewContent}
@@ -465,22 +468,42 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                       </Button>
                     </div>
                   </div>
+
+                  {/* Mobile layout (stacked) */}
+                  <div className="flex flex-col md:hidden gap-3 mt-3">
+                    <Textarea
+                      placeholder="Write your review..."
+                      value={reviewContent}
+                      onChange={(e) => setReviewContent(e.target.value)}
+                      className="min-h-[150px] w-full p-3 text-base"
+                    />
+                    <div className="flex gap-2">
+                      <Button 
+                        type="submit" 
+                        disabled={!selectedMovie || rating === 0 || !reviewContent.trim() || isSubmitting}
+                        className="flex-1"
+                      >
+                        {isSubmitting ? "Posting..." : "Post Review"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setSelectedMovie(null)
+                          setReviewContent("")
+                          setRating(0)
+                        }}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
           </div>
         </CardContent>
-        
-        {!selectedMovie && (
-          <CardFooter className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={!selectedMovie || rating === 0 || !reviewContent.trim() || isSubmitting}
-            >
-              {isSubmitting ? "Posting..." : "Post Review"}
-            </Button>
-          </CardFooter>
-        )}
       </form>
     </Card>
   )

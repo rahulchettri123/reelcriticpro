@@ -475,90 +475,90 @@ export default function ProfilePage() {
     <div className="py-6 px-4 sm:px-6 md:px-8 mx-auto w-full max-w-7xl">
       <div className="space-y-8">
         {/* Profile Header */}
-        <div className="flex flex-col md:flex-row gap-6 items-start">
-          <Avatar className="h-32 w-32 md:h-40 md:w-40">
+        <div className="flex flex-row gap-4 items-start">
+          <Avatar className="h-24 w-24 md:h-40 md:w-40 shrink-0">
             <AvatarImage src={profile.avatar || "/placeholder.svg?height=200&width=200"} alt={profile.name || "User profile"} />
             <AvatarFallback>{profile.name?.charAt(0) || "?"}</AvatarFallback>
           </Avatar>
 
-          <div className="flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col gap-2 mb-3">
               <div>
-                <h1 className="text-2xl font-bold">{profile.name}</h1>
-                <p className="text-muted-foreground">@{profile.username}</p>
+                <h1 className="text-xl md:text-2xl font-bold">{profile.name}</h1>
+                <p className="text-muted-foreground text-sm">@{profile.username}</p>
               </div>
 
-              <div className="flex gap-2 sm:ml-auto">
+              <div className="flex flex-wrap gap-2">
                 {isOwnProfile ? (
-                  <Button variant="outline" size="sm" className="gap-1" onClick={handleEditProfile}>
-                      <Settings className="h-4 w-4" />
+                  <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={handleEditProfile}>
+                      <Settings className="h-3.5 w-3.5" />
                       Edit Profile
                   </Button>
                 ) : (
                   <Button
                     variant={isFollowing ? "outline" : "default"}
                     size="sm"
-                    className="gap-1"
+                    className="gap-1 text-xs"
                     onClick={handleFollow}
                   >
-                    <UserPlus className="h-4 w-4" />
+                    <UserPlus className="h-3.5 w-3.5" />
                     {isFollowing ? "Following" : "Follow"}
                   </Button>
                 )}
                 {!isOwnProfile && isAuthenticated && (
-                <Button variant="outline" size="sm" className="gap-1">
-                  <MessageSquare className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="gap-1 text-xs">
+                  <MessageSquare className="h-3.5 w-3.5" />
                   Message
                 </Button>
                 )}
               </div>
             </div>
 
-            <div className="space-y-4">
-              <p>{profile.bio || "No bio provided."}</p>
+            <div className="space-y-3">
+              <p className="text-sm line-clamp-3 md:line-clamp-none">{profile.bio || "No bio provided."}</p>
 
               {/* Social Media Links */}
               {profile.social && Object.values(profile.social).some(value => value) && (
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-2">
                   {profile.social.twitter && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-[#1DA1F2] hover:border-[#1DA1F2] hover:text-white transition-colors" title="Twitter">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-[#1DA1F2] hover:border-[#1DA1F2] hover:text-white transition-colors" title="Twitter">
                       <a href={`https://twitter.com/${profile.social.twitter.replace('@', '')}`} target="_blank" rel="noopener noreferrer">
-                        <Twitter className="h-4 w-4" />
+                        <Twitter className="h-3.5 w-3.5 md:h-4 md:w-4" />
                       </a>
                     </Button>
                   )}
                   {profile.social.instagram && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-gradient-to-r hover:from-[#405DE6] hover:via-[#E1306C] hover:to-[#FFDC80] hover:border-[#E1306C] hover:text-white transition-colors" title="Instagram">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-gradient-to-r hover:from-[#405DE6] hover:via-[#E1306C] hover:to-[#FFDC80] hover:border-[#E1306C] hover:text-white transition-colors" title="Instagram">
                       <a href={`https://instagram.com/${profile.social.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer">
-                        <Instagram className="h-4 w-4" />
+                        <Instagram className="h-3.5 w-3.5 md:h-4 md:w-4" />
                       </a>
                     </Button>
                   )}
                   {profile.social.facebook && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-[#4267B2] hover:border-[#4267B2] hover:text-white transition-colors" title="Facebook">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-[#4267B2] hover:border-[#4267B2] hover:text-white transition-colors" title="Facebook">
                       <a href={profile.social.facebook.startsWith('http') 
                         ? profile.social.facebook 
                         : `https://facebook.com/${profile.social.facebook}`} 
                         target="_blank" rel="noopener noreferrer">
-                        <Facebook className="h-4 w-4" />
+                        <Facebook className="h-3.5 w-3.5 md:h-4 md:w-4" />
                       </a>
                     </Button>
                   )}
                   {profile.social.linkedin && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-[#0077B5] hover:border-[#0077B5] hover:text-white transition-colors" title="LinkedIn">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-[#0077B5] hover:border-[#0077B5] hover:text-white transition-colors" title="LinkedIn">
                       <a href={profile.social.linkedin.startsWith('http') 
                         ? profile.social.linkedin 
                         : `https://linkedin.com/in/${profile.social.linkedin}`} 
                         target="_blank" rel="noopener noreferrer">
-                        <Linkedin className="h-4 w-4" />
+                        <Linkedin className="h-3.5 w-3.5 md:h-4 md:w-4" />
                       </a>
                     </Button>
                   )}
                   {profile.social.letterboxd && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-[#00C030] hover:border-[#00C030] hover:text-white transition-colors" title="Letterboxd">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-[#00C030] hover:border-[#00C030] hover:text-white transition-colors" title="Letterboxd">
                       <a href={`https://letterboxd.com/${profile.social.letterboxd}`} target="_blank" rel="noopener noreferrer">
                         <svg 
-                          className="h-4 w-4" 
+                          className="h-3.5 w-3.5 md:h-4 md:w-4" 
                           xmlns="http://www.w3.org/2000/svg" 
                           viewBox="0 0 24 24" 
                           fill="currentColor">
@@ -568,16 +568,16 @@ export default function ProfilePage() {
                     </Button>
                   )}
                   {profile.website && (
-                    <Button size="icon" variant="outline" asChild className="h-9 w-9 rounded-full hover:bg-primary hover:text-white hover:border-primary transition-colors" title="Website">
+                    <Button size="icon" variant="outline" asChild className="h-7 w-7 md:h-9 md:w-9 rounded-full hover:bg-primary hover:text-white hover:border-primary transition-colors" title="Website">
                       <a href={profile.website.startsWith('http') ? profile.website : `https://${profile.website}`} target="_blank" rel="noopener noreferrer">
-                        <Globe className="h-4 w-4" />
+                        <Globe className="h-3.5 w-3.5 md:h-4 md:w-4" />
                       </a>
                     </Button>
                   )}
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+              <div className="hidden md:flex flex-wrap gap-x-6 gap-y-2 text-sm">
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Badge variant="outline">{profile.role}</Badge>
                 </div>
@@ -592,219 +592,220 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Private information - only visible to profile owner */}
-              {isOwnProfile && (
-                <div className="p-4 rounded-lg border bg-muted/50">
-                  <h3 className="font-medium mb-2">Private Information</h3>
-                  <div className="grid gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Email:</span>
-                      <span>{profile.email}</span>
-                    </div>
-                    {profile.phone && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">Phone:</span>
-                      <span>{profile.phone}</span>
-                    </div>
-                    )}
-                  </div>
+              {/* Mobile details - only shown on mobile */}
+              <div className="flex md:hidden flex-wrap gap-x-4 gap-y-1 text-xs">
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Badge variant="outline" className="text-xs py-0 h-5">{profile.role}</Badge>
                 </div>
-              )}
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>Joined {joinDate}</span>
+                </div>
+                {profile.location && (
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <span>{profile.location}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Stats Bar - replaced cards with interactive stats bar */}
-        <div className="flex flex-wrap gap-4 items-center justify-between bg-muted/30 rounded-lg p-4 border">
-          <Link href="#reviews" className="flex flex-col items-center px-4 py-2 hover:bg-muted rounded-md transition-colors">
-            <div className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <span className="text-xl font-bold">{userStats.reviewsCount || 0}</span>
+        <div className="overflow-x-auto">
+          <div className="flex flex-nowrap md:flex-wrap gap-4 items-center justify-between bg-muted/30 rounded-lg p-4 border min-w-max md:min-w-0">
+            <Link href="#reviews" className="flex flex-col items-center px-3 py-1.5 md:px-4 md:py-2 hover:bg-muted rounded-md transition-colors">
+              <div className="flex items-center gap-1.5">
+                <MessageSquare className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                <span className="text-base md:text-xl font-bold">{userStats.reviewsCount || 0}</span>
               </div>
-            <span className="text-sm text-muted-foreground">Reviews</span>
-          </Link>
-          
-          <Link href="#favorites" className="flex flex-col items-center px-4 py-2 hover:bg-muted rounded-md transition-colors">
-            <div className="flex items-center gap-2">
-              <Heart className="h-5 w-5 text-primary" />
-              <span className="text-xl font-bold">{userStats.favoritesCount || 0}</span>
+              <span className="text-xs md:text-sm text-muted-foreground">Reviews</span>
+            </Link>
+            
+            <Link href="#favorites" className="flex flex-col items-center px-3 py-1.5 md:px-4 md:py-2 hover:bg-muted rounded-md transition-colors">
+              <div className="flex items-center gap-1.5">
+                <Heart className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                <span className="text-base md:text-xl font-bold">{userStats.favoritesCount || 0}</span>
               </div>
-            <span className="text-sm text-muted-foreground">Favorites</span>
-          </Link>
-          
-          <Link href="#watchlist" className="flex flex-col items-center px-4 py-2 hover:bg-muted rounded-md transition-colors">
-            <div className="flex items-center gap-2">
-              <Bookmark className="h-5 w-5 text-primary" />
-              <span className="text-xl font-bold">{userStats.watchlistCount || 0}</span>
+              <span className="text-xs md:text-sm text-muted-foreground">Favorites</span>
+            </Link>
+            
+            <Link href="#watchlist" className="flex flex-col items-center px-3 py-1.5 md:px-4 md:py-2 hover:bg-muted rounded-md transition-colors">
+              <div className="flex items-center gap-1.5">
+                <Bookmark className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                <span className="text-base md:text-xl font-bold">{userStats.watchlistCount || 0}</span>
               </div>
-            <span className="text-sm text-muted-foreground">Watchlist</span>
-          </Link>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex flex-col items-center px-4 py-2 hover:bg-muted rounded-md transition-colors">
-                <div className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-primary" />
-                  <span className="text-xl font-bold">{userStats.followersCount || 0}</span>
-              </div>
-                <span className="text-sm text-muted-foreground">Followers</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="center">
-              <div className="space-y-2">
-                <h3 className="font-medium text-center pb-2 border-b">Followers</h3>
+              <span className="text-xs md:text-sm text-muted-foreground">Watchlist</span>
+            </Link>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex flex-col items-center px-3 py-1.5 md:px-4 md:py-2 hover:bg-muted rounded-md transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                    <span className="text-base md:text-xl font-bold">{userStats.followersCount || 0}</span>
+                </div>
+                  <span className="text-xs md:text-sm text-muted-foreground">Followers</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="center">
                 <div className="space-y-2">
-                  {loadingNetwork ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-1 flex-1">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
-              </div>
-              </div>
-                    ))
-                  ) : followers.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-4">
-                      {isOwnProfile ? "You don't have any followers yet." : "This user doesn't have any followers yet."}
-                    </p>
-                  ) : (
-                    followers.map((follower) => (
-                      <div 
-                        key={follower._id}
-                        className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors"
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={follower.avatar || "/placeholder.svg"} alt={follower.name} />
-                          <AvatarFallback>{follower.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{follower.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">@{follower.username}</div>
-                          {follower.bio && <div className="text-xs text-muted-foreground mt-1 truncate">{follower.bio}</div>}
-              </div>
-                        {isOwnProfile ? (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link 
-                              href={`/profile/${follower._id}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              View
-                            </Link>
-                          </Button>
-                        ) : (
-                          follower._id === currentUser?._id && (
+                  <h3 className="font-medium text-center pb-2 border-b">Followers</h3>
+                  <div className="space-y-2">
+                    {loadingNetwork ? (
+                      Array(3).fill(0).map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="space-y-1 flex-1">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                  </div>
+                  </div>
+                        ))
+                      ) : followers.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-4">
+                          {isOwnProfile ? "You don't have any followers yet." : "This user doesn't have any followers yet."}
+                        </p>
+                      ) : (
+                        followers.map((follower) => (
+                          <div 
+                            key={follower._id}
+                            className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors"
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={follower.avatar || "/placeholder.svg"} alt={follower.name} />
+                              <AvatarFallback>{follower.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">{follower.name}</div>
+                              <div className="text-xs text-muted-foreground truncate">@{follower.username}</div>
+                              {follower.bio && <div className="text-xs text-muted-foreground mt-1 truncate">{follower.bio}</div>}
+                    </div>
+                            {isOwnProfile ? (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link 
+                                  href={`/profile/${follower._id}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  View
+                                </Link>
+                              </Button>
+                            ) : (
+                              follower._id === currentUser?._id && (
+                                <Button size="sm" variant="outline" asChild>
+                                  <Link href="/profile">
+                                    You
+                                  </Link>
+                                </Button>
+                              )
+                            )}
+                  </div>
+                        ))
+                      )}
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex flex-col items-center px-3 py-1.5 md:px-4 md:py-2 hover:bg-muted rounded-md transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <UserCheck className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                    <span className="text-base md:text-xl font-bold">{userStats.followingCount || 0}</span>
+                  </div>
+                  <span className="text-xs md:text-sm text-muted-foreground">Following</span>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="center">
+                <div className="space-y-2">
+                  <h3 className="font-medium text-center pb-2 border-b">Following</h3>
+                  <div className="space-y-2">
+                    {loadingNetwork ? (
+                      Array(3).fill(0).map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div className="space-y-1 flex-1">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                      ))
+                    ) : following.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-4">
+                        {isOwnProfile ? "You aren't following anyone yet." : "This user isn't following anyone yet."}
+                      </p>
+                    ) : (
+                      following.map((followedUser) => (
+                        <div
+                          key={followedUser._id}
+                          className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors"
+                        >
+                          <Avatar className="h-10 w-10 border">
+                            <AvatarImage src={followedUser.avatar || "/placeholder.svg"} alt={followedUser.name} />
+                            <AvatarFallback>{followedUser.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm truncate">{followedUser.name}</div>
+                            <div className="text-xs text-muted-foreground truncate">@{followedUser.username}</div>
+                            {followedUser.bio && <div className="text-xs text-muted-foreground mt-1 truncate">{followedUser.bio}</div>}
+                          </div>
+                          {isOwnProfile ? (
                             <Button size="sm" variant="outline" asChild>
-                              <Link href="/profile">
-                                You
+                              <Link 
+                                href={`/profile/${followedUser._id}`}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                View
                               </Link>
                             </Button>
-                          )
-                        )}
-              </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex flex-col items-center px-4 py-2 hover:bg-muted rounded-md transition-colors">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-primary" />
-                  <span className="text-xl font-bold">{userStats.followingCount || 0}</span>
-                </div>
-                <span className="text-sm text-muted-foreground">Following</span>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" align="center">
-              <div className="space-y-2">
-                <h3 className="font-medium text-center pb-2 border-b">Following</h3>
-                <div className="space-y-2">
-                  {loadingNetwork ? (
-                    Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="space-y-1 flex-1">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
+                          ) : (
+                            followedUser._id === currentUser?._id && (
+                              <Button size="sm" variant="outline" asChild>
+                                <Link href="/profile">
+                                  You
+                                </Link>
+                              </Button>
+                            )
+                          )}
                         </div>
-                      </div>
-                    ))
-                  ) : following.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-4">
-                      {isOwnProfile ? "You aren't following anyone yet." : "This user isn't following anyone yet."}
-                    </p>
-                  ) : (
-                    following.map((followedUser) => (
-                      <div
-                        key={followedUser._id}
-                        className="flex items-center gap-3 p-2 hover:bg-muted rounded-md transition-colors"
-                      >
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={followedUser.avatar || "/placeholder.svg"} alt={followedUser.name} />
-                          <AvatarFallback>{followedUser.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-sm truncate">{followedUser.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">@{followedUser.username}</div>
-                          {followedUser.bio && <div className="text-xs text-muted-foreground mt-1 truncate">{followedUser.bio}</div>}
-                        </div>
-                        {isOwnProfile ? (
-                          <Button size="sm" variant="outline" asChild>
-                            <Link 
-                              href={`/profile/${followedUser._id}`}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              View
-                            </Link>
-                          </Button>
-                        ) : (
-                          followedUser._id === currentUser?._id && (
-                            <Button size="sm" variant="outline" asChild>
-                              <Link href="/profile">
-                                You
-                              </Link>
-                            </Button>
-                          )
-                        )}
-                      </div>
-                    ))
-                  )}
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
 
         <Separator />
 
         {/* Tabs for different sections */}
         <Tabs defaultValue="reviews" id="profile-tabs" onValueChange={handleTabSelect}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="reviews" className="gap-1" id="reviews">
-              <MessageSquare className="h-4 w-4" />
-              Reviews
-            </TabsTrigger>
-            <TabsTrigger value="favorites" className="gap-1" id="favorites">
-              <Heart className="h-4 w-4" />
-              Favorites
-            </TabsTrigger>
-            <TabsTrigger value="watchlist" className="gap-1" id="watchlist">
-              <Bookmark className="h-4 w-4" />
-              Watchlist
-            </TabsTrigger>
-            <TabsTrigger value="followers" className="gap-1">
-              <Users className="h-4 w-4" />
-              Followers
-            </TabsTrigger>
-            <TabsTrigger value="following" className="gap-1">
-              <UserCheck className="h-4 w-4" />
-              Following
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto">
+            <TabsList className="mb-6 min-w-max md:min-w-0">
+              <TabsTrigger value="reviews" className="gap-1" id="reviews">
+                <MessageSquare className="h-4 w-4" />
+                Reviews
+              </TabsTrigger>
+              <TabsTrigger value="favorites" className="gap-1" id="favorites">
+                <Heart className="h-4 w-4" />
+                Favorites
+              </TabsTrigger>
+              <TabsTrigger value="watchlist" className="gap-1" id="watchlist">
+                <Bookmark className="h-4 w-4" />
+                Watchlist
+              </TabsTrigger>
+              <TabsTrigger value="followers" className="gap-1">
+                <Users className="h-4 w-4" />
+                Followers
+              </TabsTrigger>
+              <TabsTrigger value="following" className="gap-1">
+                <UserCheck className="h-4 w-4" />
+                Following
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Reviews Tab */}
           <TabsContent value="reviews" className="space-y-6">

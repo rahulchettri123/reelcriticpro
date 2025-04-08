@@ -31,6 +31,11 @@ export default function Navbar() {
     setIsSearchOpen(false);
   }, []);
 
+  const handleMovieSelect = useCallback(() => {
+    // Close the search overlay when a movie is selected
+    setIsSearchOpen(false);
+  }, []);
+
   const handleLogout = useCallback(() => {
     logout();
     router.push("/");
@@ -169,7 +174,11 @@ export default function Navbar() {
           {isSearchOpen ? (
             <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/95 backdrop-blur pt-16 px-4 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:backdrop-blur-none lg:pt-0 lg:px-0">
               <div className="w-full max-w-md lg:max-w-sm">
-                <SearchAutocomplete className="w-full" onSearch={handleSearchComplete} />
+                <SearchAutocomplete 
+                  className="w-full" 
+                  onSearch={handleSearchComplete}
+                  onMovieSelect={handleMovieSelect} 
+                />
                 <Button 
                   variant="ghost" 
                   size="icon" 

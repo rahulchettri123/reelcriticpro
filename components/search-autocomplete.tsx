@@ -25,10 +25,11 @@ interface Movie {
 interface SearchAutocompleteProps {
   initialQuery?: string
   onSearch?: (query: string) => void
+  onMovieSelect?: () => void
   className?: string
 }
 
-export function SearchAutocomplete({ initialQuery = "", onSearch, className }: SearchAutocompleteProps) {
+export function SearchAutocomplete({ initialQuery = "", onSearch, onMovieSelect, className }: SearchAutocompleteProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState(initialQuery)
@@ -100,7 +101,8 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, className }: S
     router.push(`/details/${movie.id}`)
     setOpen(false)
     setQuery("")
-  }, [router]);
+    onMovieSelect?.()
+  }, [router, onMovieSelect]);
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value)

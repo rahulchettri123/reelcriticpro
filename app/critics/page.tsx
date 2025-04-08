@@ -10,12 +10,12 @@ export default function CriticsPage() {
         heading="Critics' Feed"
         subheading="See the latest movie reviews and discussions from our community"
       />
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="grid gap-6 lg:gap-8 md:grid-cols-3">
         <div className="md:col-span-2">
           <Feed />
         </div>
         <div className="space-y-6">
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <div className="rounded-lg border bg-card p-4 shadow-sm md:sticky md:top-[144px]">
             <h3 className="text-xl font-semibold mb-3">Community Guidelines</h3>
             <ul className="text-sm space-y-2 text-muted-foreground">
               <li>• Be respectful of others' opinions</li>

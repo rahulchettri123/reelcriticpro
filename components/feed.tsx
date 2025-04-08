@@ -174,123 +174,125 @@ export function Feed({ initialReviews = [], limit: propLimit }: FeedProps) {
     <div className="space-y-6">
       <CreateReview onReviewCreated={handleReviewCreated} />
       
-      {/* Filter controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border rounded-lg p-3 bg-background shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-sm font-medium">Filters:</h3>
-          
-          {/* Rating filter */}
-          <Select value={filterRating} onValueChange={setFilterRating}>
-            <SelectTrigger className="w-[140px] h-8">
-              <SelectValue placeholder="Rating" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="all">All Ratings</SelectItem>
-                <SelectItem value="5">5 Stars ★★★★★</SelectItem>
-                <SelectItem value="4">4+ Stars ★★★★☆</SelectItem>
-                <SelectItem value="3">3+ Stars ★★★☆☆</SelectItem>
-                <SelectItem value="2">2+ Stars ★★☆☆☆</SelectItem>
-                <SelectItem value="1">1+ Star ★☆☆☆☆</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          
-          {/* Genre filter */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8">
-                <Filter className="h-3.5 w-3.5 mr-2" />
-                Genres {filterGenres.length > 0 && `(${filterGenres.length})`}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[220px] p-3" align="start">
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium">Select Genres</h4>
-                <Separator />
-                <div className="flex flex-wrap gap-1.5">
-                  {movieGenres.map(genre => (
-                    <Badge 
-                      key={genre} 
-                      variant={filterGenres.includes(genre) ? "default" : "outline"}
-                      className="cursor-pointer hover:bg-muted/80 transition-colors"
-                      onClick={() => toggleGenreFilter(genre)}
-                    >
-                      {genre}
-                    </Badge>
-                  ))}
+      {/* Filter controls - Sticky */}
+      <div className="sticky top-[64px] z-20 pt-0 pb-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex flex-wrap items-center justify-between gap-2 border rounded-lg p-2 sm:p-3 bg-background shadow-sm">
+          <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+            <h3 className="text-xs sm:text-sm font-medium">Filters:</h3>
+            
+            {/* Rating filter */}
+            <Select value={filterRating} onValueChange={setFilterRating}>
+              <SelectTrigger className="w-[120px] h-8 text-xs sm:text-sm">
+                <SelectValue placeholder="Rating" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Ratings</SelectItem>
+                  <SelectItem value="5">5 Stars ★★★★★</SelectItem>
+                  <SelectItem value="4">4+ Stars ★★★★☆</SelectItem>
+                  <SelectItem value="3">3+ Stars ★★★☆☆</SelectItem>
+                  <SelectItem value="2">2+ Stars ★★☆☆☆</SelectItem>
+                  <SelectItem value="1">1+ Star ★☆☆☆☆</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            
+            {/* Genre filter */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs sm:text-sm">
+                  <Filter className="h-3.5 w-3.5 mr-1 sm:mr-2" />
+                  Genres {filterGenres.length > 0 && `(${filterGenres.length})`}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[220px] p-3" align="start">
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium">Select Genres</h4>
+                  <Separator />
+                  <div className="flex flex-wrap gap-1.5">
+                    {movieGenres.map(genre => (
+                      <Badge 
+                        key={genre} 
+                        variant={filterGenres.includes(genre) ? "default" : "outline"}
+                        className="cursor-pointer hover:bg-muted/80 transition-colors"
+                        onClick={() => toggleGenreFilter(genre)}
+                      >
+                        {genre}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
+              </PopoverContent>
+            </Popover>
+            
+            {/* Applied filters badges */}
+            {filtersApplied && (
+              <div className="flex flex-wrap gap-1.5 ml-2">
+                {filterRating !== "all" && (
+                  <Badge 
+                    variant="secondary" 
+                    className="flex items-center gap-1"
+                  >
+                    {filterRating}+ {Array.from({ length: parseInt(filterRating, 10) }).map((_, i) => (
+                      <Star key={i} className="h-3 w-3 fill-current" />
+                    ))}
+                    <button 
+                      className="ml-1 rounded-full hover:bg-muted p-0.5"
+                      onClick={() => {
+                        setFilterRating("all");
+                        setFiltersApplied(filterGenres.length > 0);
+                        fetchReviews(1, true);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                )}
+                
+                {filterGenres.map(genre => (
+                  <Badge 
+                    key={genre}
+                    variant="secondary" 
+                    className="flex items-center gap-1"
+                  >
+                    {genre}
+                    <button 
+                      className="ml-1 rounded-full hover:bg-muted p-0.5"
+                      onClick={() => {
+                        toggleGenreFilter(genre);
+                        setFiltersApplied(filterRating !== "all" || filterGenres.filter(g => g !== genre).length > 0);
+                        fetchReviews(1, true);
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
               </div>
-            </PopoverContent>
-          </Popover>
+            )}
+          </div>
           
-          {/* Applied filters badges */}
-          {filtersApplied && (
-            <div className="flex flex-wrap gap-1.5 ml-2">
-              {filterRating !== "all" && (
-                <Badge 
-                  variant="secondary" 
-                  className="flex items-center gap-1"
-                >
-                  {filterRating}+ {Array.from({ length: parseInt(filterRating, 10) }).map((_, i) => (
-                    <Star key={i} className="h-3 w-3 fill-current" />
-                  ))}
-                  <button 
-                    className="ml-1 rounded-full hover:bg-muted p-0.5"
-                    onClick={() => {
-                      setFilterRating("all");
-                      setFiltersApplied(filterGenres.length > 0);
-                      fetchReviews(1, true);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              )}
-              
-              {filterGenres.map(genre => (
-                <Badge 
-                  key={genre}
-                  variant="secondary" 
-                  className="flex items-center gap-1"
-                >
-                  {genre}
-                  <button 
-                    className="ml-1 rounded-full hover:bg-muted p-0.5"
-                    onClick={() => {
-                      toggleGenreFilter(genre);
-                      setFiltersApplied(filterRating !== "all" || filterGenres.filter(g => g !== genre).length > 0);
-                      fetchReviews(1, true);
-                    }}
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleApplyFilters} 
-            size="sm"
-            variant="default"
-            className="h-8"
-          >
-            Apply Filters
-          </Button>
-          
-          {filtersApplied && (
+          <div className="flex gap-1 sm:gap-2">
             <Button 
-              onClick={handleClearFilters} 
+              onClick={handleApplyFilters} 
               size="sm"
-              variant="outline"
-              className="h-8"
+              variant="default"
+              className="h-8 text-xs sm:text-sm px-2 sm:px-3"
             >
-              Clear All
+              Apply
             </Button>
-          )}
+            
+            {filtersApplied && (
+              <Button 
+                onClick={handleClearFilters} 
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs sm:text-sm px-2 sm:px-3"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       

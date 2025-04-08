@@ -197,6 +197,14 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
           description: "Your review has been shared to the feed",
         })
         
+        // Dispatch custom event to refresh movie ratings on home page
+        window.dispatchEvent(new CustomEvent('reviewAdded', {
+          detail: {
+            movieId: selectedMovie.id,
+            rating: rating
+          }
+        }));
+        
         // Callback to refresh feed
         onReviewCreated?.()
         
@@ -428,37 +436,51 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
                     )}
                   </div>
 
-                  <Textarea
-                    placeholder="Write your review..."
-                    value={reviewContent}
-                    onChange={(e) => setReviewContent(e.target.value)}
-                    className="min-h-[100px]"
-                  />
+                  <div className="flex gap-2 mt-3">
+                    <Textarea
+                      placeholder="Write your review..."
+                      value={reviewContent}
+                      onChange={(e) => setReviewContent(e.target.value)}
+                      className="min-h-[100px] flex-1"
+                    />
+                    <div className="flex flex-col gap-2 justify-start">
+                      <Button 
+                        type="submit" 
+                        disabled={!selectedMovie || rating === 0 || !reviewContent.trim() || isSubmitting}
+                        className="whitespace-nowrap"
+                      >
+                        {isSubmitting ? "Posting..." : "Post Review"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => {
+                          setSelectedMovie(null)
+                          setReviewContent("")
+                          setRating(0)
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
           </div>
         </CardContent>
         
-        <CardFooter className="flex justify-between">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={() => {
-              setSelectedMovie(null)
-              setReviewContent("")
-              setRating(0)
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={!selectedMovie || rating === 0 || !reviewContent.trim() || isSubmitting}
-          >
-            {isSubmitting ? "Posting..." : "Post Review"}
-          </Button>
-        </CardFooter>
+        {!selectedMovie && (
+          <CardFooter className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={!selectedMovie || rating === 0 || !reviewContent.trim() || isSubmitting}
+            >
+              {isSubmitting ? "Posting..." : "Post Review"}
+            </Button>
+          </CardFooter>
+        )}
       </form>
     </Card>
   )

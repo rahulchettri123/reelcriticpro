@@ -67,6 +67,48 @@ export async function POST(request: Request) {
         }
       )
 
+      // Update movie's local rating in the database
+      try {
+        // Calculate new average rating for this movie
+        const reviewsAggregation = await reviewsCollection.aggregate([
+          { $match: { movie: movie } },
+          { 
+            $group: { 
+              _id: null, 
+              averageRating: { $avg: "$rating" },
+              reviewCount: { $sum: 1 }
+            } 
+          }
+        ]).toArray();
+        
+        if (reviewsAggregation.length > 0) {
+          const localRating = {
+            average: parseFloat(reviewsAggregation[0].averageRating.toFixed(1)),
+            count: reviewsAggregation[0].reviewCount
+          };
+          
+          // Get movies collection
+          const moviesCollection = await getCollection("movies");
+          
+          // Update movie with new local rating
+          await moviesCollection.updateOne(
+            { id: movie },
+            { 
+              $set: { 
+                localRating: localRating,
+                updatedAt: new Date() 
+              }
+            },
+            { upsert: true }
+          );
+          
+          console.log(`Updated movie ${movie} with new local rating: ${localRating.average}/5 (${localRating.count} reviews)`);
+        }
+      } catch (ratingError) {
+        console.error("Error updating movie local rating:", ratingError);
+        // Non-critical error, continue with review creation
+      }
+
       return NextResponse.json(
         {
           message: "Review created successfully",

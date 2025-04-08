@@ -166,22 +166,27 @@ export function SearchAutocomplete({ initialQuery = "", onSearch, className }: S
                     }
                   }}
                 />
+                {query && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                    onClick={clearSearch}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span className="sr-only">Clear search</span>
+                  </Button>
+                )}
               </div>
-              <Button type="submit">
+              <Button type="submit" className="hidden sm:flex">
                 <SearchIcon className="h-4 w-4 mr-2" />
                 Search
               </Button>
-              {query && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={clearSearch}
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Clear search</span>
-                </Button>
-              )}
+              <Button type="submit" size="icon" className="sm:hidden">
+                <SearchIcon className="h-4 w-4" />
+                <span className="sr-only">Search</span>
+              </Button>
             </div>
           </PopoverTrigger>
           <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">

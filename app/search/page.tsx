@@ -54,6 +54,7 @@ export default function SearchPage() {
           rating: movie.rating || movie.averageRating || "N/A",
           genres: movie.genres || [],
           description: movie.description || movie.plot || "No description available.",
+          localRating: movie.localRating || null,
         }))
 
         console.log(`Found ${processedResults.length} results for query: "${query}"`)
@@ -133,11 +134,11 @@ export default function SearchPage() {
                 <Card key={movie.id} className="overflow-hidden">
                   <div className="aspect-[2/3] relative">
                     <Image src={movie.poster || "/placeholder.svg"} alt={movie.title || "Movie poster"} fill className="object-cover" />
-                    {movie.rating && movie.rating !== "N/A" && (
+                    {movie.localRating && movie.localRating.count > 0 && (
                       <div className="absolute top-2 right-2">
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge className="flex items-center gap-1 bg-primary text-primary-foreground">
                           <Star className="h-3 w-3 fill-current" />
-                          {movie.rating}
+                          {movie.localRating.average}/5
                         </Badge>
                       </div>
                     )}
@@ -176,10 +177,10 @@ export default function SearchPage() {
                             {movie.title} <span className="text-muted-foreground">({movie.year})</span>
                           </h3>
                           <div className="flex items-center gap-2 mt-1">
-                            {movie.rating && movie.rating !== "N/A" && (
-                              <Badge variant="secondary" className="flex items-center gap-1">
+                            {movie.localRating && movie.localRating.count > 0 && (
+                              <Badge className="flex items-center gap-1 bg-primary text-primary-foreground">
                                 <Star className="h-3 w-3 fill-current" />
-                                {movie.rating}
+                                {movie.localRating.average}/5
                               </Badge>
                             )}
                             {movie.genres &&

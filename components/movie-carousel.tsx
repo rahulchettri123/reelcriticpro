@@ -16,6 +16,10 @@ interface Movie {
   rating?: string
   releaseDate?: string
   genres?: string[]
+  localRating?: {
+    average: number
+    count: number
+  }
 }
 
 interface MovieCarouselProps {
@@ -39,7 +43,36 @@ export function MovieCarousel({
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
-  const totalPages = Math.ceil(movies.length / itemsPerView)
+  
+  // Responsive items per view based on screen size
+  const [responsiveItemsPerView, setResponsiveItemsPerView] = useState(itemsPerView)
+  
+  useEffect(() => {
+    const updateItemsPerView = () => {
+      // For mobile devices like iPhone, show fewer items
+      if (window.innerWidth < 640) {
+        setResponsiveItemsPerView(2); // Show only 2 items on small screens
+      } else if (window.innerWidth < 768) {
+        setResponsiveItemsPerView(3); // Show 3 items on medium screens
+      } else if (window.innerWidth < 1024) {
+        setResponsiveItemsPerView(4); // Show 4 items on large screens
+      } else {
+        setResponsiveItemsPerView(itemsPerView); // Use the prop value for larger screens
+      }
+    };
+    
+    // Initial update
+    updateItemsPerView();
+    
+    // Update on resize
+    window.addEventListener('resize', updateItemsPerView);
+    
+    return () => {
+      window.removeEventListener('resize', updateItemsPerView);
+    };
+  }, [itemsPerView]);
+  
+  const totalPages = Math.ceil(movies.length / responsiveItemsPerView);
 
   const checkScrollButtons = () => {
     setCanScrollLeft(currentPage > 0)
@@ -78,8 +111,8 @@ export function MovieCarousel({
 
   // Get current page of movies
   const getCurrentPageMovies = () => {
-    const startIdx = currentPage * itemsPerView
-    const endIdx = startIdx + itemsPerView
+    const startIdx = currentPage * responsiveItemsPerView
+    const endIdx = startIdx + responsiveItemsPerView
     return movies.slice(startIdx, endIdx)
   }
 
@@ -87,7 +120,7 @@ export function MovieCarousel({
   const getItemWidthStyle = () => {
     // Calculate percentage width with a small gap
     return {
-      width: `calc(${100 / itemsPerView}% - 12px)`,
+      width: `calc(${100 / responsiveItemsPerView}% - 12px)`,
       marginLeft: '6px',
       marginRight: '6px'
     }
@@ -95,22 +128,22 @@ export function MovieCarousel({
 
   return (
     <div className={cn("relative group", className)}>
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <div className="flex items-center gap-2 md:gap-3">
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h2>
           {totalPages > 1 && (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs md:text-sm text-muted-foreground">
               {currentPage + 1} / {totalPages}
             </span>
           )}
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-1 md:gap-2">
           <Button
             size="icon"
             variant="ghost"
             className={cn(
-              "h-8 w-8 rounded-full transition-all",
+              "h-7 w-7 md:h-8 md:w-8 rounded-full transition-all",
               !canScrollLeft && "opacity-50 cursor-not-allowed"
             )}
             onClick={() => scroll("left")}
@@ -124,7 +157,7 @@ export function MovieCarousel({
             size="icon"
             variant="ghost"
             className={cn(
-              "h-8 w-8 rounded-full transition-all",
+              "h-7 w-7 md:h-8 md:w-8 rounded-full transition-all",
               !canScrollRight && "opacity-50 cursor-not-allowed"
             )}
             onClick={() => scroll("right")}
@@ -173,10 +206,10 @@ export function MovieCarousel({
               )}
               
               {/* Rating badge */}
-              {movie.rating && (
+              {movie.localRating && movie.localRating.count > 0 && (
                 <div className="absolute top-2 right-2 bg-black/60 rounded-md px-1.5 py-1 flex items-center">
-                  <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 mr-0.5" />
-                  <span className="text-xs text-white font-medium">{movie.rating}</span>
+                  <Star className="h-3 w-3 text-primary fill-primary mr-0.5" />
+                  <span className="text-xs text-white font-medium">{movie.localRating.average}/5</span>
                 </div>
               )}
             </div>

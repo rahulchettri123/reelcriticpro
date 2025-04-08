@@ -143,10 +143,51 @@ export async function GET(request: NextRequest) {
           
           // Return the movies up to requested limit
           const limitedMovies = allMovies.slice(0, limit)
-          return NextResponse.json(
-            { movies: limitedMovies }, 
-            { headers }
-          )
+          
+          // Calculate and add local ratings for each movie
+          try {
+            const reviewsCollection = await getCollection("reviews")
+            
+            // Get all movie IDs to fetch ratings for
+            const movieIds = limitedMovies.map(movie => movie.id)
+            
+            // Get average ratings for all movies in one aggregation query
+            const ratingAggregation = await reviewsCollection.aggregate([
+              { $match: { movie: { $in: movieIds } } },
+              { 
+                $group: { 
+                  _id: "$movie", 
+                  averageRating: { $avg: "$rating" },
+                  reviewCount: { $sum: 1 }
+                } 
+              }
+            ]).toArray()
+            
+            // Add local ratings to each movie
+            const moviesWithRatings = limitedMovies.map(movie => {
+              const movieRating = ratingAggregation.find(r => r._id === movie.id)
+              
+              return {
+                ...movie,
+                localRating: movieRating ? {
+                  average: parseFloat(movieRating.averageRating.toFixed(1)),
+                  count: movieRating.reviewCount
+                } : null
+              }
+            })
+            
+            return NextResponse.json(
+              { movies: moviesWithRatings }, 
+              { headers }
+            )
+          } catch (ratingError) {
+            console.error("❌ Error calculating local ratings:", ratingError)
+            // Continue with movies without ratings if calculation fails
+            return NextResponse.json(
+              { movies: limitedMovies }, 
+              { headers }
+            )
+          }
         } else {
           console.error("❌ Invalid API response format:", response.data)
           return NextResponse.json(
@@ -198,10 +239,50 @@ export async function GET(request: NextRequest) {
         }
       ]
       
-      return NextResponse.json(
-        { movies: fallbackMovies.slice(0, limit) }, 
-        { headers }
-      )
+      // Calculate and add local ratings for fallback movies
+      try {
+        const reviewsCollection = await getCollection("reviews")
+        
+        // Get all movie IDs to fetch ratings for
+        const movieIds = fallbackMovies.map(movie => movie.id)
+        
+        // Get average ratings for all movies in one aggregation query
+        const ratingAggregation = await reviewsCollection.aggregate([
+          { $match: { movie: { $in: movieIds } } },
+          { 
+            $group: { 
+              _id: "$movie", 
+              averageRating: { $avg: "$rating" },
+              reviewCount: { $sum: 1 }
+            } 
+          }
+        ]).toArray()
+        
+        // Add local ratings to each movie
+        const moviesWithRatings = fallbackMovies.map(movie => {
+          const movieRating = ratingAggregation.find(r => r._id === movie.id)
+          
+          return {
+            ...movie,
+            localRating: movieRating ? {
+              average: parseFloat(movieRating.averageRating.toFixed(1)),
+              count: movieRating.reviewCount
+            } : null
+          }
+        })
+        
+        return NextResponse.json(
+          { movies: moviesWithRatings.slice(0, limit) }, 
+          { headers }
+        )
+      } catch (ratingError) {
+        console.error("❌ Error calculating local ratings for fallback movies:", ratingError)
+        // Continue with movies without ratings if calculation fails
+        return NextResponse.json(
+          { movies: fallbackMovies.slice(0, limit) }, 
+          { headers }
+        )
+      }
     }
   } catch (error) {
     console.error("❌ Unexpected error:", error)

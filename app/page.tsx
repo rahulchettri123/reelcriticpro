@@ -10,8 +10,8 @@ import { MovieCarousel } from "@/components/movie-carousel"
 
 // Loading placeholder for carousels
 const CarouselSkeleton = () => (
-  <div className="h-[300px] flex items-center justify-center">
-    <div className="animate-spin h-10 w-10 rounded-full border-4 border-primary/20 border-t-primary"></div>
+  <div className="h-[250px] sm:h-[300px] flex items-center justify-center">
+    <div className="animate-spin h-8 w-8 sm:h-10 sm:w-10 rounded-full border-4 border-primary/20 border-t-primary"></div>
   </div>
 )
 
@@ -21,6 +21,7 @@ export default function Home() {
   const [upcomingMovies, setUpcomingMovies] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true)
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now())
 
   // Fetch popular movies
   useEffect(() => {
@@ -30,9 +31,9 @@ export default function Home() {
     const fetchPopularMovies = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch("/api/movies/popular?limit=18&forceRefresh=false", {
+        const response = await fetch(`/api/movies/popular?limit=18&forceRefresh=false&_=${lastRefreshTime}`, {
           signal,
-          cache: 'force-cache'
+          cache: 'no-store' // Use no-store to avoid caching
         })
         const data = await response.json()
 
@@ -48,6 +49,7 @@ export default function Home() {
             year: movie.year || movie.startYear || movie.releaseDate?.split("-")[0] || "Unknown",
             rating: movie.rating || movie.averageRating || "N/A",
             genres: movie.genres || [],
+            localRating: movie.localRating || null,
           }))
 
           console.log(`Fetched ${processedMovies.length} trending movies for carousel`)
@@ -66,15 +68,27 @@ export default function Home() {
     const fetchUpcomingMovies = async () => {
       setIsLoadingUpcoming(true)
       try {
-        const response = await fetch("/api/movies/upcoming?limit=18&forceRefresh=false", {
+        const response = await fetch(`/api/movies/upcoming?limit=18&forceRefresh=false&_=${lastRefreshTime}`, {
           signal,
-          cache: 'force-cache'
+          cache: 'no-store' // Use no-store to avoid caching
         })
         const data = await response.json()
 
         if (data.movies && Array.isArray(data.movies)) {
           console.log(`Fetched ${data.movies.length} upcoming movies for carousel`)
-          setUpcomingMovies(data.movies)
+          setUpcomingMovies(data.movies.map((movie: any) => ({
+            id: movie.id || movie.imdbId || "unknown",
+            title: movie.title || movie.primaryTitle || movie.originalTitle || "Unknown Title",
+            poster:
+              movie.poster ||
+              movie.primaryImage ||
+              `/placeholder.svg?height=450&width=300&text=${encodeURIComponent(movie.title || movie.primaryTitle || "Movie")}`,
+            year: movie.year || movie.startYear || movie.releaseDate?.split("-")[0] || "Unknown",
+            rating: movie.rating || movie.averageRating || "N/A",
+            genres: movie.genres || [],
+            releaseDate: movie.releaseDate,
+            localRating: movie.localRating || null,
+          })))
         }
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
@@ -92,15 +106,48 @@ export default function Home() {
     return () => {
       controller.abort();
     };
-  }, [])
+  }, [lastRefreshTime])
+
+  // Function to refresh data - can be called after a user adds a review
+  const refreshMovies = () => {
+    setLastRefreshTime(Date.now());
+  }
+
+  // Listen for the custom event that's fired after a review is added
+  useEffect(() => {
+    const handleReviewAdded = () => {
+      refreshMovies();
+    };
+
+    window.addEventListener('reviewAdded', handleReviewAdded);
+    
+    // Check for recently added reviews on page load
+    const checkRecentReviews = async () => {
+      const lastVisit = localStorage.getItem('lastHomeVisit');
+      const now = new Date().toISOString();
+      
+      if (!lastVisit || (new Date(now).getTime() - new Date(lastVisit).getTime() > 60000)) {
+        // If it's been more than a minute since last visit, refresh movies
+        refreshMovies();
+      }
+      
+      localStorage.setItem('lastHomeVisit', now);
+    };
+    
+    checkRecentReviews();
+    
+    return () => {
+      window.removeEventListener('reviewAdded', handleReviewAdded);
+    };
+  }, []);
 
   return (
-    <div className="py-4 md:py-6 px-2 md:px-4 max-w-[1400px] mx-auto">
+    <div className="py-3 md:py-6 px-3 md:px-4 max-w-[1400px] mx-auto">
       {/* Hero Section */}
-      <section className="mb-8 md:mb-10">
+      <section className="mb-6 md:mb-10">
         <div className="grid gap-4 lg:grid-cols-2 lg:gap-8 items-center">
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
               Discover, Review, Connect with Fellow Movie Critics
             </h1>
             <p className="text-muted-foreground md:text-xl">
@@ -132,13 +179,13 @@ export default function Home() {
       </section>
 
       {/* Upcoming Movies Carousel */}
-      <section className="mb-10">
-        <div className="flex items-center gap-2 mb-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold tracking-tight">Coming Soon</h2>
+      <section className="mb-8 md:mb-10">
+        <div className="flex items-center gap-2 mb-2 md:mb-3">
+          <Calendar className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight">Coming Soon</h2>
         </div>
-        <p className="text-muted-foreground mb-6">
-          Be the first to know about upcoming releases and plan your watchlist ahead
+        <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
+          Be the first to know about upcoming releases
         </p>
         {isLoadingUpcoming ? (
           <CarouselSkeleton />
@@ -153,12 +200,12 @@ export default function Home() {
       </section>
 
       {/* Trending Movies Carousel */}
-      <section className="mb-10">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          <h2 className="text-2xl font-bold tracking-tight">Trending Now</h2>
+      <section className="mb-8 md:mb-10">
+        <div className="flex items-center gap-2 mb-2 md:mb-3">
+          <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight">Trending Now</h2>
         </div>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
           The most popular movies everyone is talking about
         </p>
         {isLoading ? (
@@ -173,8 +220,8 @@ export default function Home() {
         )}
       </section>
 
-      {/* CTA Section */}
-      <section className="rounded-xl bg-muted p-4 md:p-6">
+      {/* CTA Section - hidden on smaller screens for better focus on movies */}
+      <section className="hidden md:block rounded-xl bg-muted p-4 md:p-6">
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
           <div className="space-y-4">
             <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Join Our Community of Movie Critics</h2>

@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Film, Menu, User, LogOut, Search } from "lucide-react"
+import { Film, Menu, User, LogOut, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -140,7 +140,7 @@ export default function Navbar() {
       <div className="container flex h-16 items-center">
         <Sheet>
           <SheetTrigger asChild className="lg:hidden">
-            <Button variant="ghost" size="icon" className="mr-2">
+            <Button variant="ghost" size="icon" className="mr-1">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -157,8 +157,8 @@ export default function Navbar() {
           </SheetContent>
         </Sheet>
 
-        <Link href="/" className="flex items-center gap-0 mr-6 ml-4">
-          <span className="font-bold text-2xl">
+        <Link href="/" className="flex items-center gap-0 mr-4 ml-1 lg:ml-4 lg:mr-6">
+          <span className="font-bold text-xl md:text-2xl">
             <span className="text-brand-red">Reel</span>Critic
           </span>
         </Link>
@@ -167,8 +167,19 @@ export default function Navbar() {
 
         <div className="flex items-center ml-auto gap-2">
           {isSearchOpen ? (
-            <div className="relative w-full max-w-sm">
-              <SearchAutocomplete className="w-full" onSearch={handleSearchComplete} />
+            <div className="fixed inset-0 z-50 flex items-start justify-center bg-background/95 backdrop-blur pt-16 px-4 lg:relative lg:inset-auto lg:z-auto lg:bg-transparent lg:backdrop-blur-none lg:pt-0 lg:px-0">
+              <div className="w-full max-w-md lg:max-w-sm">
+                <SearchAutocomplete className="w-full" onSearch={handleSearchComplete} />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute top-4 right-4 lg:hidden"
+                  onClick={handleSearchToggle}
+                >
+                  <X className="h-5 w-5" />
+                  <span className="sr-only">Close search</span>
+                </Button>
+              </div>
             </div>
           ) : (
             <Button variant="ghost" size="icon" onClick={handleSearchToggle}>
@@ -180,9 +191,15 @@ export default function Navbar() {
           {isAuthenticated ? (
             userDropdown
           ) : (
-            <Button variant="default" size="sm" onClick={handleLogin}>
+            <Button variant="default" size="sm" className="hidden sm:flex" onClick={handleLogin}>
               <User className="h-4 w-4 mr-2" />
               Login
+            </Button>
+          )}
+          {!isAuthenticated && (
+            <Button variant="ghost" size="icon" className="sm:hidden" onClick={handleLogin}>
+              <User className="h-5 w-5" />
+              <span className="sr-only">Login</span>
             </Button>
           )}
         </div>

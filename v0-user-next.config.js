@@ -10,6 +10,17 @@ const nextConfig = {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax", // Use lax for development to work with localhost
     }
+  },
+  // Netlify specific configuration
+  images: {
+    unoptimized: true,
+    domains: ['cdn.example.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   }
 }
 

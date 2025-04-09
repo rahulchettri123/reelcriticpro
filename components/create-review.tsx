@@ -205,14 +205,8 @@ export function CreateReview({ onReviewCreated }: { onReviewCreated?: () => void
           }
         }));
         
-        // Add a slight delay before refreshing the feed to ensure database update propagation
-        setTimeout(() => {
-          // Callback to refresh feed
-          onReviewCreated?.()
-          
-          // Manually trigger a feed refresh by setting page to 1 and re-fetching
-          window.dispatchEvent(new CustomEvent('refreshFeed'));
-        }, 1000);
+        // Callback to refresh feed
+        onReviewCreated?.()
         
         // Remove redirection to profile
         // Stay on the current page to see the new review in the feed

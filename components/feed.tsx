@@ -70,10 +70,6 @@ export function Feed({ initialReviews = [], limit: propLimit }: FeedProps) {
     }
     
     try {
-      // Add a cache-busting timestamp to prevent caching
-      const cacheBuster = new Date().getTime();
-      url += `&_cb=${cacheBuster}`;
-      
       const response = await fetch(url)
       
       if (!response.ok) {
@@ -127,21 +123,6 @@ export function Feed({ initialReviews = [], limit: propLimit }: FeedProps) {
     })
   }, [])
 
-  // Listen for the refreshFeed event
-  useEffect(() => {
-    const handleRefreshFeed = () => {
-      console.log("Refreshing feed from custom event");
-      setPage(1);
-      fetchReviews(1, true);
-    };
-    
-    window.addEventListener('refreshFeed', handleRefreshFeed);
-    
-    return () => {
-      window.removeEventListener('refreshFeed', handleRefreshFeed);
-    };
-  }, [fetchReviews]);
-
   // Initialize the intersection observer
   useEffect(() => {
     if (!hasMore || loadingMore) return;
@@ -185,7 +166,6 @@ export function Feed({ initialReviews = [], limit: propLimit }: FeedProps) {
 
   const handleReviewCreated = useCallback(() => {
     // Refresh feed from the beginning
-    console.log("Review created, refreshing feed");
     setPage(1)
     fetchReviews(1)
   }, [fetchReviews])

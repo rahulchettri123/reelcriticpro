@@ -21,6 +21,12 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Skip static 404 generation which is causing Netlify builds to fail
+  output: 'standalone',
+  // Disable 404 page generation
+  async generateStaticParams() {
+    return [];
+  }
 }
 
 mergeConfig(nextConfig, userConfig)

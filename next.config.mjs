@@ -21,6 +21,8 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Target must be serverless for next-on-netlify
+  target: 'serverless'
 }
 
 mergeConfig(nextConfig, userConfig)

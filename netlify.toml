@@ -24,27 +24,21 @@ status = 200
   w = ":width"
   q = ":quality"
 
-# Handle RSC (React Server Component) requests
-[[redirects]]
-from = "/*?_rsc=*"
-to = "/.netlify/functions/server"
-status = 200
-
-# Handle API routes
-[[redirects]]
-from = "/api/*"
-to = "/.netlify/functions/nextjs-api/:splat"
-status = 200
-
-# Handle all other routes
+# SPA fallback
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
+force = false
 
 [build]
   command = "npm run build"
-  publish = ".next"
+  functions = "out_functions"
+  publish = "out_publish"
+
+[functions]
+  directory = "out_functions"
+  node_bundler = "esbuild"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

@@ -17,12 +17,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
-import { UserPlus, Settings, Film, Heart, Bookmark, MessageSquare, Calendar, CheckCircle, Twitter, Instagram, Facebook, Globe, Link2, Linkedin, Users, UserCheck, Star } from "lucide-react"
+import { UserPlus, Settings, Film, Heart, Bookmark, MessageSquare, Calendar, CheckCircle, Twitter, Instagram, Facebook, Globe, Link2, Linkedin, Users, UserCheck, Star, MessageCircle } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuth } from "@/contexts/auth-context"
 import { User, Review } from "@/lib/types"
 import { useToast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
+import { ProfileReviewCard } from "@/components/profile-review-card"
+import { ProfileCommentCard } from "@/components/profile-comment-card"
 
 // Real API function to fetch user profile
 const getUserProfile = async (userId: string) => {
@@ -66,6 +68,8 @@ export default function ProfilePage() {
   const [watchlistMovies, setWatchlistMovies] = useState<any[]>([])
   const [loadingFavorites, setLoadingFavorites] = useState(false)
   const [loadingWatchlist, setLoadingWatchlist] = useState(false)
+  const [userComments, setUserComments] = useState<any[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
 
   // Check if this is the current user's profile
   const isOwnProfile = isAuthenticated && currentUser?._id === userId
@@ -302,6 +306,22 @@ export default function ProfilePage() {
     if (value === "watchlist") {
       loadWatchlistData()
     }
+
+    // Load comments when the comments tab is selected
+    if (value === "comments" && userComments.length === 0 && !loadingComments) {
+      setLoadingComments(true);
+      try {
+        const response = await fetch(`/api/user/comments?userId=${userId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserComments(data.comments || []);
+        }
+      } catch (error) {
+        console.error("Error fetching user comments:", error);
+      } finally {
+        setLoadingComments(false);
+      }
+    }
   }
 
   // Handle removing a follower
@@ -411,6 +431,51 @@ export default function ProfilePage() {
       setLoadingId(null)
     }
   }
+
+  // Handle deleting a review from the profile page
+  const handleReviewDeleted = (reviewId: string) => {
+    // Remove the review from the list
+    setRecentReviews(prevReviews => prevReviews.filter(review => review._id !== reviewId));
+    
+    // Update the review count in profile stats
+    setProfile(prev => ({
+      ...prev,
+      stats: {
+        ...prev.stats,
+        reviewsCount: prev.stats.reviewsCount - 1
+      }
+    }));
+  };
+  
+  // Handle updating a review from the profile page
+  const handleReviewUpdated = (reviewId: string, newContent: string, newRating: number) => {
+    // Update the review in the list
+    setRecentReviews(prevReviews => 
+      prevReviews.map(review => 
+        review._id === reviewId 
+          ? { ...review, content: newContent, rating: newRating } 
+          : review
+      )
+    );
+  };
+  
+  // Handle deleting a comment from the profile page
+  const handleCommentDeleted = (commentId: string) => {
+    // Remove the comment from the list
+    setUserComments(prevComments => prevComments.filter(comment => comment._id !== commentId));
+  };
+  
+  // Handle updating a comment from the profile page
+  const handleCommentUpdated = (commentId: string, newContent: string) => {
+    // Update the comment in the list
+    setUserComments(prevComments => 
+      prevComments.map(comment => 
+        comment._id === commentId 
+          ? { ...comment, content: newContent, updatedAt: new Date().toISOString() } 
+          : comment
+      )
+    );
+  };
 
   if (loading) {
     return (
@@ -788,6 +853,10 @@ export default function ProfilePage() {
                 <MessageSquare className="h-4 w-4" />
                 Reviews
               </TabsTrigger>
+              <TabsTrigger value="comments" className="gap-1" id="comments">
+                <MessageCircle className="h-4 w-4" />
+                Comments
+              </TabsTrigger>
               <TabsTrigger value="favorites" className="gap-1" id="favorites">
                 <Heart className="h-4 w-4" />
                 Favorites
@@ -813,58 +882,14 @@ export default function ProfilePage() {
               <>
               <div className="grid gap-6 md:grid-cols-2">
                   {recentReviews.map((review: any) => (
-                    <Card key={review._id} className="overflow-hidden">
-                    <div className="flex">
-                      <div className="w-[100px] shrink-0">
-                          <div className="relative h-full min-h-[150px] bg-muted">
-                            {review.moviePoster ? (
-                        <Image
-                                src={review.moviePoster}
-                                alt={review.movieTitle}
-                          width={100}
-                          height={150}
-                          className="object-cover h-full"
-                        />
-                            ) : (
-                              <div className="flex items-center justify-center h-full">
-                                <Film className="h-8 w-8 text-muted-foreground" />
-                              </div>
-                            )}
-                          </div>
-                      </div>
-                      <div className="flex-1">
-                        <CardHeader className="p-4 pb-2">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">
-                                <Link href={`/details/${review.movie}`} className="hover:underline">
-                                  {review.movieTitle}
-                              </Link>
-                            </CardTitle>
-                              <div className="flex items-center gap-1 rounded bg-primary/10 px-2 py-1">
-                              <Star className="h-4 w-4 fill-primary text-primary" />
-                                <span className="font-medium text-sm">{review.rating}/5</span>
-                            </div>
-                          </div>
-                            <CardDescription>
-                              {new Date(review.createdAt).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <p className="line-clamp-3 text-sm">{review.content}</p>
-                        </CardContent>
-                        <CardFooter className="p-4 pt-0">
-                          <Button asChild variant="ghost" size="sm">
-                              <Link href={`/reviews/${review._id}`}>Read Full Review</Link>
-                          </Button>
-                        </CardFooter>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    <ProfileReviewCard 
+                      key={review._id} 
+                      review={review} 
+                      isOwner={isOwnProfile}
+                      onReviewDeleted={handleReviewDeleted}
+                      onReviewUpdated={handleReviewUpdated}
+                    />
+                  ))}
               </div>
                 {userStats.reviewsCount > 5 && (
                   <div className="flex justify-center mt-4">
@@ -891,6 +916,47 @@ export default function ProfilePage() {
                     </Button>
                   </div>
                 )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Comments Tab */}
+          <TabsContent value="comments" className="space-y-6">
+            {loadingComments ? (
+              <div className="space-y-4">
+                {Array(3).fill(0).map((_, i) => (
+                  <Card key={i}>
+                    <CardHeader className="p-4 pb-2">
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <Skeleton className="h-12 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : userComments && userComments.length > 0 ? (
+              <div className="grid gap-4">
+                {userComments.map((comment: any) => (
+                  <ProfileCommentCard
+                    key={comment._id}
+                    comment={comment}
+                    isOwner={isOwnProfile}
+                    onCommentDeleted={handleCommentDeleted}
+                    onCommentUpdated={handleCommentUpdated}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-medium mb-2">No comments yet</h3>
+                <p className="text-muted-foreground">
+                  {isOwnProfile ? "You haven't" : `${profile.name} hasn't`} commented on any reviews yet.
+                </p>
               </div>
             )}
           </TabsContent>

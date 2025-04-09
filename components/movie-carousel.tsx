@@ -49,13 +49,19 @@ export function MovieCarousel({
   
   useEffect(() => {
     const updateItemsPerView = () => {
-      // For mobile devices like iPhone, show fewer items
-      if (window.innerWidth < 640) {
-        setResponsiveItemsPerView(2); // Show only 2 items on small screens
+      // More precise responsive breakpoints for better mobile support
+      if (window.innerWidth < 375) {
+        setResponsiveItemsPerView(1.5); // Show 1.5 items on very small screens like iPhone SE
+      } else if (window.innerWidth < 480) {
+        setResponsiveItemsPerView(2); // Show 2 items on small screens like iPhone 12/13/14
+      } else if (window.innerWidth < 640) {
+        setResponsiveItemsPerView(2.5); // Show 2.5 items on medium phones
       } else if (window.innerWidth < 768) {
-        setResponsiveItemsPerView(3); // Show 3 items on medium screens
+        setResponsiveItemsPerView(3); // Show 3 items on larger phones/small tablets
       } else if (window.innerWidth < 1024) {
-        setResponsiveItemsPerView(4); // Show 4 items on large screens
+        setResponsiveItemsPerView(4); // Show 4 items on tablets
+      } else if (window.innerWidth < 1280) {
+        setResponsiveItemsPerView(5); // Show 5 items on small desktops
       } else {
         setResponsiveItemsPerView(itemsPerView); // Use the prop value for larger screens
       }
@@ -64,11 +70,18 @@ export function MovieCarousel({
     // Initial update
     updateItemsPerView();
     
-    // Update on resize
-    window.addEventListener('resize', updateItemsPerView);
+    // Update on resize with debounce for better performance
+    let resizeTimer: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(updateItemsPerView, 100);
+    };
+    
+    window.addEventListener('resize', handleResize);
     
     return () => {
-      window.removeEventListener('resize', updateItemsPerView);
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
     };
   }, [itemsPerView]);
   
@@ -111,23 +124,26 @@ export function MovieCarousel({
 
   // Get current page of movies
   const getCurrentPageMovies = () => {
-    const startIdx = currentPage * responsiveItemsPerView
-    const endIdx = startIdx + responsiveItemsPerView
+    const startIdx = currentPage * Math.floor(responsiveItemsPerView)
+    const endIdx = startIdx + Math.floor(responsiveItemsPerView)
     return movies.slice(startIdx, endIdx)
   }
 
   // Calculate item width based on container width and items per view
   const getItemWidthStyle = () => {
-    // Calculate percentage width with a small gap
+    const gap = 8; // 8px gap (4px on each side)
+    const itemWidth = `calc(${100 / Math.floor(responsiveItemsPerView)}% - ${gap}px)`;
+    
     return {
-      width: `calc(${100 / responsiveItemsPerView}% - 12px)`,
-      marginLeft: '6px',
-      marginRight: '6px'
-    }
+      width: itemWidth,
+      marginLeft: `${gap/2}px`,
+      marginRight: `${gap/2}px`,
+      marginBottom: '8px' // Add bottom margin to prevent overlapping
+    };
   }
 
   return (
-    <div className={cn("relative group", className)}>
+    <div className={cn("relative group w-full", className)}>
       <div className="flex items-center justify-between mb-3 md:mb-4">
         <div className="flex items-center gap-2 md:gap-3">
           <h2 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h2>
@@ -171,7 +187,7 @@ export function MovieCarousel({
       
       <div
         ref={containerRef}
-        className="flex flex-wrap overflow-hidden pb-4"
+        className="flex flex-wrap w-full overflow-hidden pb-4"
       >
         {getCurrentPageMovies().map((movie) => (
           <Link
@@ -186,7 +202,7 @@ export function MovieCarousel({
                   src={movie.poster}
                   alt={movie.title || 'Movie poster'}
                   fill
-                  sizes="(max-width: 640px) 160px, (max-width: 768px) 180px, 200px"
+                  sizes="(max-width: 480px) 150px, (max-width: 768px) 180px, 200px"
                   className="object-cover transition-transform group-hover/card:scale-105"
                   priority={currentPage === 0} // Priority load first page
                 />
@@ -199,7 +215,7 @@ export function MovieCarousel({
               {/* Release date badge */}
               {movie.releaseDate && (
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="text-xs text-white font-medium">
+                  <p className="text-xs text-white font-medium truncate">
                     {formatReleaseDate(movie.releaseDate)}
                   </p>
                 </div>

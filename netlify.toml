@@ -1,0 +1,42 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NETLIFY_NEXT_PLUGIN_SKIP = "true"
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Improve mobile experience with proper headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Content-Security-Policy = "frame-ancestors 'none'"
+    # Enable viewport for mobile devices
+    X-UA-Compatible = "IE=edge"
+    
+    # Cache static assets for better performance
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Allow larger payloads for API responses
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    # Shorter cache time for API responses
+    Cache-Control = "public, max-age=60"
+
+# Handle 404 errors with custom page
+[[redirects]]
+  from = "/*"
+  to = "/404"
+  status = 404 

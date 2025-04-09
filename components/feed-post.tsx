@@ -469,14 +469,9 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
           </p>
         </div>
         
-        <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 shadow-sm">
-            <Star className="h-4 w-4 fill-primary text-primary" />
-            <span className="font-semibold">{review.rating}/5</span>
-          </div>
-          
-          {/* Post actions dropdown (edit/delete) - only for post author */}
-          {isPostAuthor && (
+        {/* Post actions dropdown (edit/delete) - only for post author */}
+        {isPostAuthor && (
+          <div className="ml-auto">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -498,7 +493,12 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          </div>
+        )}
+        
+        <div className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 shadow-sm">
+          <Star className="h-4 w-4 fill-primary text-primary" />
+          <span className="font-semibold">{review.rating}/5</span>
         </div>
       </CardHeader>
 

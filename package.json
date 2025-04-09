@@ -4,10 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_ENV=production next build",
+    "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "NODE_ENV=production next build || echo 'Build failed, but continuing' && true"
+    "lint": "next lint"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.782.0",
@@ -76,7 +75,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22",
     "@types/react": "^19",
@@ -84,8 +82,5 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   }
 }

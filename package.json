@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export -o out || next build",
+    "build": "NODE_ENV=production next build && cp -r .next/static out/_next/static || mkdir -p out/_next && cp -r .next/static out/_next/",
     "start": "next start",
     "lint": "next lint"
   },

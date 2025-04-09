@@ -16,17 +16,9 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    webpackBuildWorker: true,
-    parallelServerBuildTraces: true,
-    parallelServerCompiles: true,
-  },
-  // Skip static 404 generation which is causing Netlify builds to fail
-  output: 'standalone',
-  // Disable 404 page generation
-  async generateStaticParams() {
-    return [];
-  }
+  trailingSlash: true,
+  output: 'export',
+  distDir: 'out',
 }
 
 mergeConfig(nextConfig, userConfig)

@@ -69,13 +69,17 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
         return NextResponse.json({ error: "Review not found" }, { status: 404 })
       }
 
-      // Check if user is the author of the review
+      // Check if user is the author of the review (comparing ObjectId as string)
       if (review.user.toString() !== currentUserId) {
         return NextResponse.json({ error: "Not authorized to delete this review" }, { status: 403 })
       }
 
       // Delete review
-      await reviewsCollection.deleteOne({ _id: new ObjectId(reviewId) })
+      const deleteResult = await reviewsCollection.deleteOne({ _id: new ObjectId(reviewId) })
+      
+      if (deleteResult.deletedCount === 0) {
+        return NextResponse.json({ error: "Failed to delete review" }, { status: 500 })
+      }
 
       // Update user's review count
       const usersCollection = await getCollection("users")
@@ -86,6 +90,12 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
           $set: { updatedAt: new Date() }
         }
       )
+
+      // Also delete any comments associated with this review
+      const commentsCollection = await getCollection("comments")
+      if (commentsCollection) {
+        await commentsCollection.deleteMany({ reviewId: new ObjectId(reviewId) })
+      }
 
       return NextResponse.json({ message: "Review deleted successfully" })
     } catch (tokenError) {
@@ -130,13 +140,28 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         return NextResponse.json({ error: "Review not found" }, { status: 404 })
       }
 
-      // Check if user is the author of the review
+      // Check if user is the author of the review (comparing ObjectId as string)
       if (review.user.toString() !== currentUserId) {
         return NextResponse.json({ error: "Not authorized to update this review" }, { status: 403 })
       }
 
       // Get updated fields from request
       const updates = await request.json()
+      
+      // Validate the rating
+      if (updates.rating !== undefined) {
+        const rating = Number(updates.rating)
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+          return NextResponse.json({ error: "Rating must be between 1 and 5" }, { status: 400 })
+        }
+        updates.rating = rating
+      }
+      
+      // Validate content
+      if (updates.content !== undefined && (!updates.content || updates.content.trim() === '')) {
+        return NextResponse.json({ error: "Review content cannot be empty" }, { status: 400 })
+      }
+      
       const allowedUpdates = ["rating", "content"]
       
       // Filter out disallowed fields
@@ -155,17 +180,37 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       sanitizedUpdates.updatedAt = new Date()
       
       // Update review
-      await reviewsCollection.updateOne(
+      const updateResult = await reviewsCollection.updateOne(
         { _id: new ObjectId(reviewId) },
         { $set: sanitizedUpdates }
       )
+      
+      if (updateResult.modifiedCount === 0) {
+        return NextResponse.json({ error: "No changes were made to the review" }, { status: 304 })
+      }
 
-      // Get updated review
+      // Get updated review with user data
       const updatedReview = await reviewsCollection.findOne({ _id: new ObjectId(reviewId) })
+      
+      // Populate user data for the response
+      let responseReview = updatedReview
+      
+      if (updatedReview) {
+        const usersCollection = await getCollection("users")
+        const user = await usersCollection.findOne({ _id: new ObjectId(updatedReview.user) })
+        
+        if (user) {
+          const { password, ...userWithoutPassword } = user
+          responseReview = {
+            ...updatedReview,
+            user: userWithoutPassword
+          }
+        }
+      }
 
       return NextResponse.json({
         message: "Review updated successfully",
-        review: updatedReview
+        review: responseReview
       })
     } catch (tokenError) {
       console.error("Token verification error:", tokenError)

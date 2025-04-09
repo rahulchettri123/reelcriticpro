@@ -34,8 +34,6 @@ const nextConfig = {
   poweredByHeader: false,
   // Disable static optimization for error/404 pages
   reactStrictMode: true,
-  // Disable static optimization for error page
-  optimizeCss: false, 
   // Disable error overlay in production
   productionBrowserSourceMaps: false,
   // Skip building custom 404 page

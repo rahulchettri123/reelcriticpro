@@ -2,6 +2,16 @@ import { NextResponse } from "next/server"
 import { getCollection } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+// Utility function to check if a string is a valid ObjectId
+function isValidObjectId(id: string): boolean {
+  try {
+    new ObjectId(id);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     // Get the userId from the query params
@@ -18,6 +28,15 @@ export async function GET(request: Request) {
       )
     }
 
+    // Validate userId is a valid ObjectId
+    if (!isValidObjectId(userId)) {
+      return NextResponse.json(
+        { error: "Invalid user ID format" },
+        { status: 400 }
+      )
+    }
+
+    const userObjectId = new ObjectId(userId);
     const reviewsCollection = await getCollection("reviews")
 
     // Aggregate to find all reviews where the user has commented
@@ -26,8 +45,8 @@ export async function GET(request: Request) {
       {
         $match: {
           $or: [
-            { "comments.user._id": new ObjectId(userId) },
-            { "comments.replies.user._id": new ObjectId(userId) }
+            { "comments.user._id": userObjectId },
+            { "comments.replies.user._id": userObjectId }
           ]
         }
       },
@@ -37,7 +56,7 @@ export async function GET(request: Request) {
       {
         $match: {
           $or: [
-            { "comments.user._id": new ObjectId(userId) },
+            { "comments.user._id": userObjectId },
             { "comments.replies": { $exists: true, $ne: [] } }
           ]
         }
@@ -56,7 +75,7 @@ export async function GET(request: Request) {
           // Process top-level comments
           topLevelComments: [
             {
-              $match: { "comment.user._id": new ObjectId(userId) }
+              $match: { "comment.user._id": userObjectId }
             },
             {
               $project: {
@@ -78,7 +97,7 @@ export async function GET(request: Request) {
             },
             { $unwind: "$comment.replies" },
             {
-              $match: { "comment.replies.user._id": new ObjectId(userId) }
+              $match: { "comment.replies.user._id": userObjectId }
             },
             {
               $project: {
@@ -98,10 +117,19 @@ export async function GET(request: Request) {
       // Combine the results
       {
         $project: {
-          comments: { $concatArrays: ["$topLevelComments", "$replies"] }
+          comments: { 
+            $cond: {
+              if: { $and: [
+                { $isArray: "$topLevelComments" }, 
+                { $isArray: "$replies" }
+              ]},
+              then: { $concatArrays: ["$topLevelComments", "$replies"] },
+              else: []
+            }
+          }
         }
       },
-      { $unwind: "$comments" },
+      { $unwind: { path: "$comments", preserveNullAndEmptyArrays: true } },
       // Sort by creation date (newest first)
       { $sort: { "comments.createdAt": -1 } },
       // Skip and limit for pagination
@@ -111,73 +139,38 @@ export async function GET(request: Request) {
       {
         $group: {
           _id: null,
-          comments: { $push: "$comments" }
+          comments: { 
+            $push: {
+              $cond: [
+                { $ifNull: ["$comments", false] },
+                "$comments",
+                "$$REMOVE"
+              ]
+            }
+          }
         }
       }
     ]
 
     const result = await reviewsCollection.aggregate(pipeline).toArray()
     
-    const comments = result.length > 0 ? result[0].comments : []
+    const comments = result.length > 0 && result[0].comments ? result[0].comments : []
 
-    // Get total count for pagination
-    const countPipeline = [
-      {
-        $match: {
-          $or: [
-            { "comments.user._id": new ObjectId(userId) },
-            { "comments.replies.user._id": new ObjectId(userId) }
-          ]
-        }
-      },
-      // Unwind the comments array
-      { $unwind: "$comments" },
-      // Match top-level comments by this user or unwind replies
-      {
-        $match: {
-          $or: [
-            { "comments.user._id": new ObjectId(userId) },
-            { "comments.replies": { $exists: true, $ne: [] } }
-          ]
-        }
-      },
-      // Count the comments
-      {
-        $facet: {
-          topLevelCount: [
-            { $match: { "comments.user._id": new ObjectId(userId) } },
-            { $count: "count" }
-          ],
-          repliesCount: [
-            { $match: { "comments.replies": { $exists: true, $ne: [] } } },
-            { $unwind: "$comments.replies" },
-            { $match: { "comments.replies.user._id": new ObjectId(userId) } },
-            { $count: "count" }
-          ]
-        }
-      },
-      {
-        $project: {
-          totalCount: {
-            $add: [
-              { $ifNull: [{ $arrayElemAt: ["$topLevelCount.count", 0] }, 0] },
-              { $ifNull: [{ $arrayElemAt: ["$repliesCount.count", 0] }, 0] }
-            ]
-          }
-        }
-      }
-    ]
-
-    const countResult = await reviewsCollection.aggregate(countPipeline).toArray()
-    const totalCount = countResult.length > 0 ? countResult[0].totalCount : 0
+    // Get total count for pagination - simplified to avoid potential errors
+    const countResult = await reviewsCollection.countDocuments({
+      $or: [
+        { "comments.user._id": userObjectId },
+        { "comments.replies.user._id": userObjectId }
+      ]
+    });
 
     return NextResponse.json({
       comments,
       pagination: {
-        total: totalCount,
+        total: countResult,
         page,
         limit,
-        totalPages: Math.ceil(totalCount / limit)
+        totalPages: Math.ceil(countResult / limit)
       }
     })
   } catch (error) {

@@ -1,46 +1,114 @@
-import { MongoClient, ServerApiVersion } from "mongodb"
+import { MongoClient, Db, Collection } from "mongodb"
 
-// Replace with your MongoDB connection string
-const uri = process.env.MONGODB_URI || "mongodb://localhost:27017/movie-critics"
+// Check for mongodb URI in environment variables
+const MONGODB_URI = process.env.MONGODB_URI
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
-})
-
-let clientPromise: Promise<MongoClient>
-
-if (process.env.NODE_ENV === "development") {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  const globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>
-  }
-
-  if (!globalWithMongo._mongoClientPromise) {
-    globalWithMongo._mongoClientPromise = client.connect()
-  }
-  clientPromise = globalWithMongo._mongoClientPromise
-} else {
-  // In production mode, it's best to not use a global variable.
-  clientPromise = client.connect()
+if (!MONGODB_URI) {
+  throw new Error("Please define the MONGODB_URI environment variable inside .env")
 }
 
-export default clientPromise
-
-// Helper function to get the database
-export async function getDatabase() {
-  const client = await clientPromise
-  return client.db()
+// Connection caching
+interface CachedConnection {
+  client: MongoClient
+  db: Db
+  collections: { [key: string]: Collection }
 }
 
-// Helper function to get a collection
-export async function getCollection(collectionName: string) {
-  const db = await getDatabase()
-  return db.collection(collectionName)
+let cached: CachedConnection | null = null
+
+// Helper to validate collection name
+function isValidCollectionName(name: string): boolean {
+  // Simple validation to prevent injection attacks
+  return /^[a-zA-Z0-9_-]+$/.test(name)
+}
+
+/**
+ * Get a MongoDB connection
+ * @returns {Promise<Db>}
+ */
+export async function getMongoDb(): Promise<Db> {
+  // If we have a cached connection, return it
+  if (cached && cached.db) {
+    return cached.db
+  }
+
+  // Otherwise, create a new connection
+  try {
+    // Connect to MongoDB
+    const opts = {
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 30000,
+    }
+
+    const client = await MongoClient.connect(MONGODB_URI!, opts)
+    const db = client.db()
+
+    // Cache the connection
+    cached = {
+      client,
+      db,
+      collections: {},
+    }
+
+    console.log("Connected to MongoDB")
+    return db
+  } catch (error) {
+    console.error("Error connecting to MongoDB:", error)
+    throw new Error("Failed to connect to database")
+  }
+}
+
+/**
+ * Get a collection from the database
+ * @param {string} collectionName - The name of the collection
+ * @returns {Promise<Collection>}
+ */
+export async function getCollection(collectionName: string): Promise<Collection> {
+  // Validate collection name
+  if (!isValidCollectionName(collectionName)) {
+    throw new Error(`Invalid collection name: ${collectionName}`)
+  }
+
+  // Check cache first
+  if (cached && cached.collections[collectionName]) {
+    return cached.collections[collectionName]
+  }
+
+  // Get the database connection
+  const db = await getMongoDb()
+  
+  // Get the collection
+  try {
+    const collection = db.collection(collectionName)
+    
+    // Cache the collection
+    if (cached) {
+      cached.collections[collectionName] = collection
+    }
+    
+    return collection
+  } catch (error) {
+    console.error(`Error getting collection ${collectionName}:`, error)
+    throw new Error(`Failed to get collection: ${collectionName}`)
+  }
+}
+
+/**
+ * Close the MongoDB connection
+ */
+export async function closeMongoConnection(): Promise<void> {
+  if (cached && cached.client) {
+    await cached.client.close()
+    cached = null
+    console.log("MongoDB connection closed")
+  }
+}
+
+// Handle process termination
+if (typeof process !== "undefined") {
+  process.on("beforeExit", async () => {
+    await closeMongoConnection()
+  })
 }
 

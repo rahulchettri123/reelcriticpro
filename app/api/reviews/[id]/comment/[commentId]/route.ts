@@ -4,209 +4,199 @@ import jwt from "jsonwebtoken"
 import { getCollection } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
+// Helper function to validate ObjectId
+function isValidObjectId(id: string): boolean {
+  try {
+    new ObjectId(id);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 // Edit a comment
 export async function PUT(
   request: Request,
   { params }: { params: { id: string; commentId: string } }
 ) {
   try {
-    const reviewId = params.id
-    const commentId = params.commentId
+    const reviewId = params.id;
+    const commentId = params.commentId;
 
     if (!reviewId || !commentId) {
       return NextResponse.json(
         { error: "Review ID and Comment ID are required" },
         { status: 400 }
-      )
+      );
+    }
+
+    // Validate IDs
+    if (!isValidObjectId(reviewId) || !isValidObjectId(commentId)) {
+      return NextResponse.json(
+        { error: "Invalid ID format" },
+        { status: 400 }
+      );
     }
 
     // Check authentication
-    const cookieStore = await cookies()
-    const token = cookieStore.get("token")
+    const cookieStore = cookies();
+    const token = cookieStore.get("token");
 
     if (!token) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
-      )
+      );
     }
 
-    // Verify token
-    const jwtSecret = process.env.JWT_SECRET
+    // Verify JWT
+    const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("JWT_SECRET environment variable is not set!")
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
-      )
+      );
     }
 
+    let decoded: any;
     try {
-      const decoded = jwt.verify(token.value, jwtSecret) as { id: string }
-      const userId = decoded.id
+      decoded = jwt.verify(token.value, jwtSecret);
+    } catch (error) {
+      return NextResponse.json(
+        { error: "Invalid token" },
+        { status: 401 }
+      );
+    }
 
-      // Get request body
-      const { content } = await request.json()
+    const userId = decoded.userId;
+    const { content } = await request.json();
 
-      if (!content || content.trim() === "") {
-        return NextResponse.json(
-          { error: "Comment content cannot be empty" },
-          { status: 400 }
-        )
-      }
+    if (!content || typeof content !== "string" || content.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Comment content is required" },
+        { status: 400 }
+      );
+    }
 
-      // Get the reviews collection
-      const reviewsCollection = await getCollection("reviews")
-      
-      // Find the review
-      const review = await reviewsCollection.findOne({
-        _id: new ObjectId(reviewId)
-      })
+    const reviewCollection = await getCollection("reviews");
 
-      if (!review) {
-        return NextResponse.json(
-          { error: "Review not found" },
-          { status: 404 }
-        )
-      }
+    // First, find the review to ensure it exists
+    const review = await reviewCollection.findOne({
+      _id: new ObjectId(reviewId)
+    });
 
-      // Find the comment within the review
-      let isTopLevelComment = false;
-      let parentCommentId = null;
-      let comment = null;
-      
-      // First check if it's a top-level comment
-      if (review.comments) {
-        comment = review.comments.find((c: any) => 
-          c._id.toString() === commentId
-        );
-        
-        if (comment) {
-          isTopLevelComment = true;
-        } else {
-          // Check if it's a reply to a comment
-          for (const topComment of review.comments) {
-            if (topComment.replies) {
-              const reply = topComment.replies.find((r: any) => 
-                r._id.toString() === commentId
-              );
-              
-              if (reply) {
-                comment = reply;
-                parentCommentId = topComment._id.toString();
-                break;
-              }
-            }
-          }
-        }
-      }
+    if (!review) {
+      return NextResponse.json(
+        { error: "Review not found" },
+        { status: 404 }
+      );
+    }
 
-      if (!comment) {
-        return NextResponse.json(
-          { error: "Comment not found" },
-          { status: 404 }
-        )
-      }
+    // Check if the comment is a top-level comment or a reply
+    let isTopLevelComment = false;
+    let parentCommentId = null;
+    let commentFound = false;
 
-      // Check if user is the author of the comment
-      if (comment.user._id.toString() !== userId) {
-        // Check if user is the post author (post authors can also edit comments)
-        if (review.user.toString() !== userId) {
+    // Check if it's a top-level comment
+    for (const comment of review.comments || []) {
+      if (comment._id.toString() === commentId) {
+        isTopLevelComment = true;
+        commentFound = true;
+        // Check if the user is the comment author
+        if (comment.user._id.toString() !== userId) {
           return NextResponse.json(
-            { error: "Not authorized to edit this comment" },
+            { error: "You can only edit your own comments" },
             { status: 403 }
-          )
-        }
-      }
-
-      const updatedAt = new Date();
-      let result;
-      
-      // Update the comment based on whether it's top-level or a reply
-      if (isTopLevelComment) {
-        // Update top-level comment
-        result = await reviewsCollection.updateOne(
-          { 
-            _id: new ObjectId(reviewId),
-            "comments._id": new ObjectId(commentId)
-          },
-          {
-            $set: {
-              "comments.$.content": content.trim(),
-              "comments.$.updatedAt": updatedAt
-            }
-          }
-        )
-      } else if (parentCommentId) {
-        // Update reply
-        result = await reviewsCollection.updateOne(
-          { 
-            _id: new ObjectId(reviewId),
-            "comments._id": new ObjectId(parentCommentId),
-            "comments.replies._id": new ObjectId(commentId)
-          },
-          {
-            $set: {
-              "comments.$[comment].replies.$[reply].content": content.trim(),
-              "comments.$[comment].replies.$[reply].updatedAt": updatedAt
-            }
-          },
-          {
-            arrayFilters: [
-              { "comment._id": new ObjectId(parentCommentId) },
-              { "reply._id": new ObjectId(commentId) }
-            ]
-          }
-        )
-      }
-
-      if (!result || result.modifiedCount === 0) {
-        return NextResponse.json(
-          { error: "Failed to update comment" },
-          { status: 500 }
-        )
-      }
-
-      // Get the updated comment
-      const updatedReview = await reviewsCollection.findOne({
-        _id: new ObjectId(reviewId)
-      })
-      
-      let updatedComment = null;
-      
-      if (isTopLevelComment && updatedReview.comments) {
-        updatedComment = updatedReview.comments.find((c: any) => 
-          c._id.toString() === commentId
-        );
-      } else if (parentCommentId && updatedReview.comments) {
-        const parentComment = updatedReview.comments.find((c: any) => 
-          c._id.toString() === parentCommentId
-        );
-        
-        if (parentComment && parentComment.replies) {
-          updatedComment = parentComment.replies.find((r: any) => 
-            r._id.toString() === commentId
           );
         }
+        break;
       }
 
-      return NextResponse.json({
-        message: "Comment updated successfully",
-        comment: updatedComment
-      })
-    } catch (error) {
-      console.error("Token verification or comment update error:", error)
-      return NextResponse.json(
-        { error: "Authentication failed" },
-        { status: 401 }
-      )
+      // Check if it's a reply
+      if (comment.replies && comment.replies.length > 0) {
+        for (const reply of comment.replies) {
+          if (reply._id.toString() === commentId) {
+            parentCommentId = comment._id.toString();
+            commentFound = true;
+            // Check if the user is the reply author
+            if (reply.user._id.toString() !== userId) {
+              return NextResponse.json(
+                { error: "You can only edit your own comments" },
+                { status: 403 }
+              );
+            }
+            break;
+          }
+        }
+        if (parentCommentId) break;
+      }
     }
+
+    if (!commentFound) {
+      return NextResponse.json(
+        { error: "Comment not found" },
+        { status: 404 }
+      );
+    }
+
+    const updatedAt = new Date();
+    let result;
+
+    if (isTopLevelComment) {
+      // Update top-level comment
+      result = await reviewCollection.updateOne(
+        { 
+          _id: new ObjectId(reviewId),
+          "comments._id": new ObjectId(commentId) 
+        },
+        {
+          $set: {
+            "comments.$.content": content.trim(),
+            "comments.$.updatedAt": updatedAt
+          }
+        }
+      );
+    } else {
+      // Update reply
+      result = await reviewCollection.updateOne(
+        { 
+          _id: new ObjectId(reviewId),
+          "comments._id": new ObjectId(parentCommentId),
+          "comments.replies._id": new ObjectId(commentId)
+        },
+        {
+          $set: {
+            "comments.$[comment].replies.$[reply].content": content.trim(),
+            "comments.$[comment].replies.$[reply].updatedAt": updatedAt
+          }
+        },
+        {
+          arrayFilters: [
+            { "comment._id": new ObjectId(parentCommentId) },
+            { "reply._id": new ObjectId(commentId) }
+          ]
+        }
+      );
+    }
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: "Failed to update comment" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      message: "Comment updated successfully",
+      content: content.trim(),
+      updatedAt
+    });
   } catch (error) {
-    console.error("Comment update error:", error)
+    console.error("Error updating comment:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to update comment" },
       { status: 500 }
-    )
+    );
   }
 }
 
@@ -216,151 +206,161 @@ export async function DELETE(
   { params }: { params: { id: string; commentId: string } }
 ) {
   try {
-    const reviewId = params.id
-    const commentId = params.commentId
+    const reviewId = params.id;
+    const commentId = params.commentId;
 
     if (!reviewId || !commentId) {
       return NextResponse.json(
         { error: "Review ID and Comment ID are required" },
         { status: 400 }
-      )
+      );
+    }
+
+    // Validate IDs
+    if (!isValidObjectId(reviewId) || !isValidObjectId(commentId)) {
+      return NextResponse.json(
+        { error: "Invalid ID format" },
+        { status: 400 }
+      );
     }
 
     // Check authentication
-    const cookieStore = await cookies()
-    const token = cookieStore.get("token")
+    const cookieStore = cookies();
+    const token = cookieStore.get("token");
 
     if (!token) {
       return NextResponse.json(
         { error: "Not authenticated" },
         { status: 401 }
-      )
+      );
     }
 
-    // Verify token
-    const jwtSecret = process.env.JWT_SECRET
+    // Verify JWT
+    const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("JWT_SECRET environment variable is not set!")
       return NextResponse.json(
         { error: "Server configuration error" },
         { status: 500 }
-      )
+      );
     }
 
+    let decoded: any;
     try {
-      const decoded = jwt.verify(token.value, jwtSecret) as { id: string }
-      const userId = decoded.id
-
-      // Get the reviews collection
-      const reviewsCollection = await getCollection("reviews")
-      
-      // Find the review
-      const review = await reviewsCollection.findOne({
-        _id: new ObjectId(reviewId)
-      })
-
-      if (!review) {
-        return NextResponse.json(
-          { error: "Review not found" },
-          { status: 404 }
-        )
-      }
-
-      // Find the comment within the review
-      let isTopLevelComment = false;
-      let parentCommentId = null;
-      let comment = null;
-      
-      // First check if it's a top-level comment
-      if (review.comments) {
-        comment = review.comments.find((c: any) => 
-          c._id.toString() === commentId
-        );
-        
-        if (comment) {
-          isTopLevelComment = true;
-        } else {
-          // Check if it's a reply to a comment
-          for (const topComment of review.comments) {
-            if (topComment.replies) {
-              const reply = topComment.replies.find((r: any) => 
-                r._id.toString() === commentId
-              );
-              
-              if (reply) {
-                comment = reply;
-                parentCommentId = topComment._id.toString();
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (!comment) {
-        return NextResponse.json(
-          { error: "Comment not found" },
-          { status: 404 }
-        )
-      }
-
-      // Check if user is the author of the comment
-      if (comment.user._id.toString() !== userId) {
-        // Check if user is the post author (post authors can also delete comments)
-        if (review.user.toString() !== userId) {
-          return NextResponse.json(
-            { error: "Not authorized to delete this comment" },
-            { status: 403 }
-          )
-        }
-      }
-
-      let result;
-      
-      // Delete the comment based on whether it's top-level or a reply
-      if (isTopLevelComment) {
-        // Delete top-level comment
-        result = await reviewsCollection.updateOne(
-          { _id: new ObjectId(reviewId) },
-          { $pull: { comments: { _id: new ObjectId(commentId) } } }
-        )
-      } else if (parentCommentId) {
-        // Delete reply
-        result = await reviewsCollection.updateOne(
-          { 
-            _id: new ObjectId(reviewId),
-            "comments._id": new ObjectId(parentCommentId)
-          },
-          { 
-            $pull: { 
-              "comments.$.replies": { _id: new ObjectId(commentId) } 
-            } 
-          }
-        )
-      }
-
-      if (!result || result.modifiedCount === 0) {
-        return NextResponse.json(
-          { error: "Failed to delete comment" },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json({
-        message: "Comment deleted successfully"
-      })
+      decoded = jwt.verify(token.value, jwtSecret);
     } catch (error) {
-      console.error("Token verification or comment deletion error:", error)
       return NextResponse.json(
-        { error: "Authentication failed" },
+        { error: "Invalid token" },
         { status: 401 }
-      )
+      );
     }
+
+    const userId = decoded.userId;
+    const reviewCollection = await getCollection("reviews");
+
+    // First, find the review
+    const review = await reviewCollection.findOne({
+      _id: new ObjectId(reviewId)
+    });
+
+    if (!review) {
+      return NextResponse.json(
+        { error: "Review not found" },
+        { status: 404 }
+      );
+    }
+
+    // Check if the comment is a top-level comment or a reply
+    let isTopLevelComment = false;
+    let parentCommentId = null;
+    let commentFound = false;
+    let canDelete = false;
+
+    // Check if user is the review author (can delete any comment)
+    const isReviewAuthor = review.user._id.toString() === userId;
+
+    // Check if it's a top-level comment
+    for (const comment of review.comments || []) {
+      if (comment._id.toString() === commentId) {
+        isTopLevelComment = true;
+        commentFound = true;
+        // User can delete if they are the comment author or the review author
+        canDelete = comment.user._id.toString() === userId || isReviewAuthor;
+        break;
+      }
+
+      // Check if it's a reply
+      if (comment.replies && comment.replies.length > 0) {
+        for (const reply of comment.replies) {
+          if (reply._id.toString() === commentId) {
+            parentCommentId = comment._id.toString();
+            commentFound = true;
+            // User can delete if they are the reply author or the review author
+            canDelete = reply.user._id.toString() === userId || isReviewAuthor;
+            break;
+          }
+        }
+        if (parentCommentId) break;
+      }
+    }
+
+    if (!commentFound) {
+      return NextResponse.json(
+        { error: "Comment not found" },
+        { status: 404 }
+      );
+    }
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "You don't have permission to delete this comment" },
+        { status: 403 }
+      );
+    }
+
+    let result;
+
+    if (isTopLevelComment) {
+      // Delete top-level comment and all its replies
+      result = await reviewCollection.updateOne(
+        { _id: new ObjectId(reviewId) },
+        { $pull: { comments: { _id: new ObjectId(commentId) } } }
+      );
+    } else {
+      // Delete reply only
+      result = await reviewCollection.updateOne(
+        { 
+          _id: new ObjectId(reviewId),
+          "comments._id": new ObjectId(parentCommentId)
+        },
+        {
+          $pull: { "comments.$.replies": { _id: new ObjectId(commentId) } }
+        }
+      );
+    }
+
+    if (result.modifiedCount === 0) {
+      return NextResponse.json(
+        { error: "Failed to delete comment" },
+        { status: 500 }
+      );
+    }
+
+    // Decrement the comment count
+    await reviewCollection.updateOne(
+      { _id: new ObjectId(reviewId) },
+      { $inc: { commentCount: -1 } }
+    );
+
+    return NextResponse.json({
+      message: "Comment deleted successfully",
+      reviewId,
+      commentId
+    });
   } catch (error) {
-    console.error("Comment deletion error:", error)
+    console.error("Error deleting comment:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Failed to delete comment" },
       { status: 500 }
-    )
+    );
   }
 } 

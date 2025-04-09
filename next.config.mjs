@@ -14,6 +14,12 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
     unoptimized: true,
   },
   experimental: {
@@ -21,6 +27,11 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  // Prevent 404 errors during build by disabling static generation for dynamic routes
+  output: 'standalone',
+  // Increase timeout for builds
+  staticPageGenerationTimeout: 180,
+  poweredByHeader: false,
 }
 
 mergeConfig(nextConfig, userConfig)

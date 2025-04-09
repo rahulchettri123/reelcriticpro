@@ -4,10 +4,15 @@ import jwt from "jsonwebtoken"
 import { getCollection } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const reviewId = params.id
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
 
+  try {
     // Get token from cookies using cookies() directly to avoid warnings
     const cookieStore = await cookies()
     const token = cookieStore.get("token")

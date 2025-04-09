@@ -5,14 +5,19 @@ import { getCollection } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
 // Get a specific review by ID
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
+
+  if (!reviewId) {
+    return NextResponse.json({ error: "Review ID is required" }, { status: 400 })
+  }
+
   try {
-    const reviewId = params.id
-
-    if (!reviewId) {
-      return NextResponse.json({ error: "Review ID is required" }, { status: 400 })
-    }
-
     // Get review from database
     const reviewsCollection = await getCollection("reviews")
     const review = await reviewsCollection.findOne({ _id: new ObjectId(reviewId) })
@@ -38,10 +43,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 // Delete a review (only by the review author)
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const reviewId = params.id
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
 
+  try {
     // Get token from cookies
     const cookieStore = await cookies()
     const token = cookieStore.get("token")
@@ -109,10 +119,15 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 }
 
 // Update a review (only by the review author)
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const reviewId = params.id
+export async function PUT(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
 
+  try {
     // Get token from cookies
     const cookieStore = await cookies()
     const token = cookieStore.get("token")

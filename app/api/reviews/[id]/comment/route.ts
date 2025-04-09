@@ -4,10 +4,15 @@ import jwt from "jsonwebtoken"
 import { getCollection } from "@/lib/mongodb"
 import { ObjectId } from "mongodb"
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
-  try {
-    const reviewId = params.id
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
 
+  try {
     // Get token from cookies
     const cookieStore = await cookies()
     const token = cookieStore.get("token")
@@ -179,9 +184,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
   }
 }
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  // Await the params
+  const { id } = await context.params
+  const reviewId = id
+  
   try {
-    const reviewId = params.id
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get("limit") || "50", 10)
     const skip = parseInt(searchParams.get("skip") || "0", 10)

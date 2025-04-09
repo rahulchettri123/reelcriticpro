@@ -8,9 +8,34 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
-import { Heart, MessageCircle, Share2, Star, Send, Loader2 } from "lucide-react"
+import { Heart, MessageCircle, Share2, Star, Send, Loader2, MoreVertical, Edit, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { useAuth } from "@/contexts/auth-context"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from "@/components/ui/use-toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Comment {
   _id: string
@@ -50,7 +75,8 @@ interface FeedPostProps {
 
 export const FeedPost = memo(({ review }: FeedPostProps) => {
   const { isAuthenticated, user } = useAuth()
-  const [liked, setLiked] = useState(review.likes.includes(user?._id || ""))
+  const { toast } = useToast()
+  const [liked, setLiked] = useState(user?._id ? review.likes.includes(user._id.toString()) : false)
   const [likesCount, setLikesCount] = useState(review.likes.length)
   const [showComments, setShowComments] = useState(false)
   const [commentText, setCommentText] = useState("")
@@ -61,9 +87,16 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
   const [isFollowing, setIsFollowing] = useState(false)
   const [followLoading, setFollowLoading] = useState(false)
   const [commentsCount, setCommentsCount] = useState(review.comments.length)
-
-  // Add state to track expanded replies
   const [expandedReplies, setExpandedReplies] = useState<Record<string, boolean>>({})
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editedContent, setEditedContent] = useState(review.content)
+  const [editedRating, setEditedRating] = useState(review.rating)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  
+  // Determine if current user is the post author
+  const isPostAuthor = isAuthenticated && user?._id === review.user._id
 
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -308,6 +341,92 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
     }))
   }, [])
 
+  // Handle delete post
+  const handleDeletePost = async () => {
+    if (!isAuthenticated || !isPostAuthor) return
+    
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/reviews/${review._id}`, {
+        method: "DELETE",
+        credentials: "include",
+      })
+      
+      if (response.ok) {
+        toast({
+          title: "Review deleted",
+          description: "Your review has been successfully deleted.",
+        })
+        // Refresh the page to show updated list
+        window.location.reload()
+      } else {
+        const data = await response.json()
+        toast({
+          title: "Error",
+          description: data.error || "Failed to delete review. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to delete review:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+      setDeleteDialogOpen(false)
+    }
+  }
+  
+  // Handle edit post
+  const handleEditPost = async () => {
+    if (!isAuthenticated || !isPostAuthor) return
+    
+    setIsEditing(true)
+    try {
+      const response = await fetch(`/api/reviews/${review._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: editedContent,
+          rating: editedRating,
+        }),
+        credentials: "include",
+      })
+      
+      if (response.ok) {
+        toast({
+          title: "Review updated",
+          description: "Your review has been successfully updated.",
+        })
+        // Update the review in the UI
+        review.content = editedContent
+        review.rating = editedRating
+        setEditDialogOpen(false)
+      } else {
+        const data = await response.json()
+        toast({
+          title: "Error",
+          description: data.error || "Failed to update review. Please try again.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Failed to update review:", error)
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
   return (
     <Card className="mb-4 overflow-hidden hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-row items-start gap-4 pb-2">
@@ -349,9 +468,37 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
             {formatDistanceToNow(new Date(review.createdAt), { addSuffix: true })}
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 shadow-sm">
-          <Star className="h-4 w-4 fill-primary text-primary" />
-          <span className="font-semibold">{review.rating}/5</span>
+        
+        <div className="ml-auto flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1.5 shadow-sm">
+            <Star className="h-4 w-4 fill-primary text-primary" />
+            <span className="font-semibold">{review.rating}/5</span>
+          </div>
+          
+          {/* Post actions dropdown (edit/delete) - only for post author */}
+          {isPostAuthor && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">More</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit review
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete review
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </CardHeader>
 
@@ -602,6 +749,96 @@ export const FeedPost = memo(({ review }: FeedPostProps) => {
           </div>
         </div>
       )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this review?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your review of "{review.movieTitle}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeletePost}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Edit review dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit your review</DialogTitle>
+            <DialogDescription>
+              Make changes to your review of "{review.movieTitle}".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="rating" className="text-sm font-medium">
+                Rating
+              </label>
+              <select 
+                id="rating"
+                value={editedRating}
+                onChange={(e) => setEditedRating(Number(e.target.value))}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={num}>
+                    {num} {num === 1 ? 'Star' : 'Stars'}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="content" className="text-sm font-medium">
+                Review Content
+              </label>
+              <Textarea
+                id="content"
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                rows={5}
+                placeholder="Write your thoughts about the movie..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEditPost}
+              disabled={isEditing || !editedContent.trim()}
+            >
+              {isEditing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 })

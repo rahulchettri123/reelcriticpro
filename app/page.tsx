@@ -142,12 +142,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="py-3 md:py-6 px-3 md:px-4 max-w-[1400px] mx-auto">
-      {/* Hero Section */}
+    <div className="py-3 md:py-6 px-3 md:px-4 max-w-[1400px] mx-auto overflow-x-hidden">
+      {/* Hero Section - improved mobile layout */}
       <section className="mb-6 md:mb-10">
         <div className="grid gap-4 lg:grid-cols-2 lg:gap-8 items-center">
-          <div className="space-y-3">
-            <h1 className="text-2xl md:text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+          <div className="space-y-3 max-w-full">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl break-words">
               Discover, Review, Connect with Fellow Movie Critics
             </h1>
             <p className="text-muted-foreground md:text-xl">
@@ -155,33 +155,33 @@ export default function Home() {
               like-minded critics.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/critics">Visit Critics Feed</Link>
               </Button>
               {!isAuthenticated && (
-                <Button asChild variant="outline" size="lg">
+                <Button asChild variant="outline" size="lg" className="w-full sm:w-auto">
                   <Link href="/register">Join Community</Link>
                 </Button>
               )}
             </div>
           </div>
-          <div className="relative aspect-video overflow-hidden rounded-xl">
+          <div className="relative aspect-video overflow-hidden rounded-xl w-full">
             <Image
               src="/placeholder.svg?height=600&width=800"
               alt="Movie collage"
               width={800}
               height={600}
-              className="object-cover"
+              className="object-cover w-full h-full"
               priority
             />
           </div>
         </div>
       </section>
 
-      {/* Upcoming Movies Carousel */}
-      <section className="mb-8 md:mb-10">
+      {/* Upcoming Movies Carousel - fixed for mobile */}
+      <section className="mb-8 md:mb-10 w-full">
         <div className="flex items-center gap-2 mb-2 md:mb-3">
-          <Calendar className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+          <Calendar className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
           <h2 className="text-xl md:text-2xl font-bold tracking-tight">Coming Soon</h2>
         </div>
         <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
@@ -199,10 +199,10 @@ export default function Home() {
         )}
       </section>
 
-      {/* Trending Movies Carousel */}
-      <section className="mb-8 md:mb-10">
+      {/* Trending Movies Carousel - fixed for mobile */}
+      <section className="mb-8 md:mb-10 w-full">
         <div className="flex items-center gap-2 mb-2 md:mb-3">
-          <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+          <TrendingUp className="h-4 w-4 md:h-5 md:w-5 text-primary flex-shrink-0" />
           <h2 className="text-xl md:text-2xl font-bold tracking-tight">Trending Now</h2>
         </div>
         <p className="text-sm md:text-base text-muted-foreground mb-4 md:mb-6">
@@ -220,8 +220,8 @@ export default function Home() {
         )}
       </section>
 
-      {/* CTA Section - hidden on smaller screens for better focus on movies */}
-      <section className="hidden md:block rounded-xl bg-muted p-4 md:p-6">
+      {/* CTA Section - improved for mobile */}
+      <section className="hidden md:block rounded-xl bg-muted p-4 md:p-6 w-full">
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
           <div className="space-y-4">
             <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Join Our Community of Movie Critics</h2>
@@ -230,7 +230,7 @@ export default function Home() {
               community.
             </p>
             {!isAuthenticated && (
-              <Button asChild size="lg">
+              <Button asChild size="lg" className="w-full sm:w-auto">
                 <Link href="/register">Sign Up Now</Link>
               </Button>
             )}

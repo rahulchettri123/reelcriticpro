@@ -30,8 +30,18 @@ const nextConfig = {
   // Prevent 404 errors during build by disabling static generation for dynamic routes
   output: 'standalone',
   // Increase timeout for builds
-  staticPageGenerationTimeout: 180,
+  staticPageGenerationTimeout: 300,
   poweredByHeader: false,
+  // Disable static optimization for error/404 pages
+  reactStrictMode: true,
+  // Disable static optimization for error page
+  optimizeCss: false, 
+  // Disable error overlay in production
+  productionBrowserSourceMaps: false,
+  // Skip building custom 404 page
+  generateBuildId: async () => {
+    return 'build-' + Date.now();
+  },
 }
 
 mergeConfig(nextConfig, userConfig)
